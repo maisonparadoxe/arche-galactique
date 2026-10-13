@@ -59,7 +59,16 @@ func enter(args: Dictionary) -> void:
 	weapons_console = Vector2(ar.end.x - 30, ar.get_center().y)
 	_setup_enemy(str(args.get("enemy", "eclaireur")))
 	cross = enemy_layout.bounds.get_center()
-	for p: Player in game.players.values():
+	# Les avatars des joueurs démarrent dans la coursive, les recrues à leurs postes.
+	var posts := ["armes", "boucliers", "moteurs", "pilotage"]
+	var k := 0
+	for p: Player in game.crew:
+		if p.owner_token == "" and k < posts.size():
+			var room := layout.room_with_system(posts[k])
+			k += 1
+			if not room.is_empty():
+				p.position = (room["rect"] as Rect2).get_center() + Vector2(-24, 18)
+				continue
 		_place(p)
 
 
@@ -103,8 +112,17 @@ func on_join(p: Player) -> void:
 
 
 func on_leave(p: Player) -> void:
-	if gunner == p.peer_id:
+	on_release(p)
+
+
+func on_release(p: Player) -> void:
+	if p.seated and gunner == p.peer_id:
 		gunner = 0
+
+
+func location_name(p: Player) -> String:
+	var r := layout.room_at(p.position)
+	return r.get("name", "") if not r.is_empty() else ""
 
 
 # ---------------------------------------------------------------- systèmes
@@ -178,8 +196,6 @@ func _interact(p: Player) -> void:
 		p.position = weapons_console + Vector2(-30, 0)
 		p.facing = Vector2.RIGHT
 		game.net.send(p.peer_id, layout_for(p))
-	if p.pressed(3):
-		game.net.send(p.peer_id, {"t": "toast", "text": "Changer de personnage : à la prochaine étape !"})
 
 
 func on_action(p: Player, action: String, msg: Dictionary) -> void:
@@ -384,9 +400,14 @@ func _update_fires(delta: float) -> void:
 	var run: RunState = game.run
 	for f in fires.duplicate():
 		f["intensity"] = minf(100.0, f["intensity"] + 3.0 * delta)
-		for p: Player in game.players.values():
-			if not p.seated and p.held(1) and p.position.distance_to(f["pos"]) < NEAR + 6:
-				f["intensity"] -= (70.0 if p.species == "salamandrin" else 35.0) * delta
+		for p: Player in game.crew:
+			var w := work_rate(p)
+			# un membre contrôlé éteint le feu devant lui ; un membre libre s'occupe des feux de sa salle
+			var reach: bool = p.position.distance_to(f["pos"]) < NEAR + 6 if not p.is_free() \
+				else layout.room_at(p.position).get("id", "") == f["room"]
+			if w > 0.0 and reach:
+				f["intensity"] -= (70.0 if p.species == "salamandrin" else 35.0) * w * delta
+				p.working = p.is_free()
 		if f["intensity"] <= 0.0:
 			fires.erase(f)
 			continue
@@ -411,23 +432,26 @@ func _update_fires(delta: float) -> void:
 
 
 ## Réparations : maintenir B dans une salle dont le système est endommagé (hors des flammes).
+## Un membre libre répare tout seul, à mi-vitesse, le système de la salle où il se trouve.
 func _update_crew_work(delta: float) -> void:
-	for p: Player in game.players.values():
-		if p.seated or not p.held(1):
+	for p: Player in game.crew:
+		var w := work_rate(p)
+		if w <= 0.0:
 			continue
+		var room := layout.room_at(p.position)
 		var near_fire := false
 		for f in fires:
-			if p.position.distance_to(f["pos"]) < NEAR + 6:
+			if p.position.distance_to(f["pos"]) < NEAR + 6 or (p.is_free() and f["room"] == room.get("id", "")):
 				near_fire = true
 		if near_fire:
 			continue
-		var room := layout.room_at(p.position)
 		if room.is_empty() or not sys.has(room["system"]):
 			continue
 		var s: Dictionary = sys[room["system"]]
 		if s["damage"] <= 0:
 			continue
-		s["repair"] += (45.0 if p.species == "humain" else 25.0) * delta
+		s["repair"] += (45.0 if p.species == "humain" else 25.0) * w * delta
+		p.working = p.is_free()
 		if s["repair"] >= 100.0:
 			s["repair"] = 0.0
 			s["damage"] -= 1

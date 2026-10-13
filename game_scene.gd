@@ -34,6 +34,26 @@ func on_leave(_p: Player) -> void:
 	pass
 
 
+## Un téléphone lâche ce personnage pour en prendre un autre (il quitte son poste, etc.).
+func on_release(_p: Player) -> void:
+	pass
+
+
+## Où se trouve ce personnage (affiché dans la liste de l'équipage).
+func location_name(_p: Player) -> String:
+	return ""
+
+
+## Vitesse de travail : un membre contrôlé travaille à plein régime quand il maintient le bouton,
+## un membre libre travaille seul à mi-vitesse là où il se trouve.
+func work_rate(p: Player, button := 1) -> float:
+	if p.seated:
+		return 0.0
+	if not p.is_free():
+		return 1.0 if p.held(button) else 0.0
+	return 0.5
+
+
 func on_action(_p: Player, _action: String, _msg: Dictionary) -> void:
 	pass
 

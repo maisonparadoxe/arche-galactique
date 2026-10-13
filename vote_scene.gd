@@ -143,13 +143,15 @@ func draw_vote_footer(y := 672.0) -> void:
 	Art.bar(self, Rect2(40, y, 520, 10), frac, Art.GOLD if frac > 0.25 else Art.DANGER)
 	Art.text(self, Vector2(40, y + 32), "Votez sur vos téléphones · %d s" % remaining(), 16, Color(Art.IVORY, 0.7))
 	var x := 600.0
-	for p: Player in game.players.values():
-		var voted := votes.has(p.peer_id)
-		draw_circle(Vector2(x, y + 6), 9, p.color if voted else Color(p.color, 0.25))
+	for peer in game.people:
+		var who: Dictionary = game.people[peer]
+		var col: Color = who["color"]
+		var voted: bool = votes.has(peer)
+		draw_circle(Vector2(x, y + 6), 9, col if voted else Color(col, 0.25))
 		if voted:
 			draw_arc(Vector2(x, y + 6), 12, 0, TAU, 24, Art.GOLD, 1.5)
-		Art.text(self, Vector2(x + 16, y + 11), p.player_name, 14, Art.IVORY if voted else Color(Art.IVORY, 0.4))
-		x += 30 + Art.font().get_string_size(p.player_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 16
+		Art.text(self, Vector2(x + 16, y + 11), who["name"], 14, Art.IVORY if voted else Color(Art.IVORY, 0.4))
+		x += 30 + Art.font().get_string_size(who["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 16
 		if x > 1240:
 			break
 
@@ -158,8 +160,7 @@ func draw_vote_footer(y := 672.0) -> void:
 func draw_voters(option_id: String, at: Vector2) -> void:
 	var x := at.x
 	for id in votes:
-		if votes[id] == option_id and game.players.has(id):
-			var p: Player = game.players[id]
-			draw_circle(Vector2(x, at.y), 8, p.color)
+		if votes[id] == option_id and game.people.has(id):
+			draw_circle(Vector2(x, at.y), 8, game.people[id]["color"])
 			draw_arc(Vector2(x, at.y), 9, 0, TAU, 20, Art.GOLD, 1.2)
 			x += 20

@@ -14,7 +14,12 @@ const SPECIES := {
 	"salamandrin": "Éteint les feux deux fois plus vite",
 	"colosse": "Porte les charges sans ralentir",
 }
+const SPECIES_NAMES := {"humain": "Humain", "automate": "Automate", "salamandrin": "Salamandrin", "colosse": "Colosse"}
 const ORNAMENTS := ["aucun", "fleur", "plume", "couronne"]
+# Recrues : des noms empruntés aux romans de Jules Verne et H. G. Wells (domaine public)
+const RECRUIT_NAMES := ["Aronnax", "Conseil", "Ned", "Passepartout", "Ardan", "Barbicane", "Nicholl", "Weena", "Fogg", "Lidenbrock"]
+const RECRUIT_COLORS := [Color("#a88f6a"), Color("#7f9a8c"), Color("#a07a86"), Color("#8c8aa8"), Color("#9a9a6e"), Color("#6f8fa0")]
+const ACADEMY_RECRUITS := 3   # recrues présentes à l'Académie, en plus des avatars des joueurs
 const MAX_PLAYERS := 8
 const INPUT_STALE_MS := 500
 
@@ -29,8 +34,11 @@ const SCENES := {
 }
 
 var net: NetServer
-var players: Dictionary = {}           # peer_id -> Player
+var players: Dictionary = {}           # peer_id -> membre d'équipage contrôlé par ce téléphone
+var people: Dictionary = {}            # peer_id -> {name, color, slot, token, medals, choosing}
+var crew: Array = []                   # tous les membres d'équipage présents (contrôlés ou libres)
 var profiles_by_token: Dictionary = {} # token -> emplacement de couleur
+var _next_crew_id := 1
 var run: RunState
 var scene: GameScene
 var scene_name := ""
@@ -80,8 +88,12 @@ func _switch(name: String, args: Dictionary) -> void:
 	if scene:
 		scene.exit()
 		scene.queue_free()
-	for p: Player in players.values():
+	for p: Player in crew:
 		p.reset_state()
+	for who in people.values():
+		who["choosing"] = false
+	if name == "academie":
+		rebuild_crew(0, ACADEMY_RECRUITS)
 	scene_name = name
 	scene = SCENES[name].new()
 	scene.game = self
@@ -95,13 +107,14 @@ func _switch(name: String, args: Dictionary) -> void:
 
 func _refresh_players() -> void:
 	var visible_now := scene.shows_players()
-	for p: Player in players.values():
+	for p: Player in crew:
 		p.visible = visible_now
 
 
 ## Démarre une expédition avec le vaisseau choisi.
 func start_run(ship_id: String) -> void:
 	run = RunState.create(ship_id)
+	rebuild_crew(maxi(int(ShipData.PLAYER_SHIPS[ship_id].get("crew", 4)), people.size()))
 	goto("carte")
 
 
@@ -130,12 +143,12 @@ func toast_all(text: String) -> void:
 # ---------------------------------------------------------------- joueurs
 
 func _on_joined(id: int, profile: Dictionary) -> void:
-	if players.size() >= MAX_PLAYERS:
+	if people.size() >= MAX_PLAYERS:
 		net.kick(id, {"t": "full"})
 		return
 	var used := {}
-	for p in players.values():
-		used[p.slot] = true
+	for who in people.values():
+		used[who["slot"]] = true
 	var wanted: int = profile["color"]
 	if wanted < 0 and profiles_by_token.has(profile["token"]):
 		wanted = profiles_by_token[profile["token"]]
@@ -150,35 +163,182 @@ func _on_joined(id: int, profile: Dictionary) -> void:
 				break
 	if profile["token"] != "":
 		profiles_by_token[profile["token"]] = slot
-	var p := Player.new()
-	p.peer_id = id
-	p.slot = slot
-	p.token = profile["token"]
-	p.player_name = profile["name"]
-	p.color = PALETTE[slot]
-	p.species = profile["species"] if SPECIES.has(profile["species"]) else "humain"
-	p.ornament = profile["ornament"] if profile["ornament"] in ORNAMENTS else "aucun"
-	p.last_input_ms = Time.get_ticks_msec()
-	players[id] = p
-	add_child(p)
-	net.send(id, {"t": "welcome", "slot": slot, "color": "#" + p.color.to_html(false), "name": p.player_name,
-		"species": p.species, "ability": SPECIES[p.species]})
+	var species: String = profile["species"] if SPECIES.has(profile["species"]) else "humain"
+	var ornament: String = profile["ornament"] if profile["ornament"] in ORNAMENTS else "aucun"
+	people[id] = {"name": profile["name"], "color": PALETTE[slot], "slot": slot, "token": profile["token"],
+		"species": species, "ornament": ornament, "medals": 0, "choosing": false}
+	net.send(id, {"t": "welcome", "slot": slot, "color": "#" + PALETTE[slot].to_html(false), "name": profile["name"],
+		"species": species, "ability": SPECIES[species]})
 	if slot != wanted and wanted >= 0:
 		net.send(id, {"t": "toast", "text": "Couleur déjà prise : on t'en a donné une autre."})
-	scene.on_join(p)
-	p.visible = scene.shows_players()
-	net.send(id, scene.layout_for(p))
-	print("[game] %s (%s) a rejoint" % [p.player_name, p.species])
+	# Reprendre son avatar s'il est encore à bord (reconnexion), sinon en créer un
+	var body: Player = null
+	for c: Player in crew:
+		if c.owner_token != "" and c.owner_token == profile["token"]:
+			body = c
+	if body == null:
+		body = _new_crew_member(profile["name"], species, ornament, PALETTE[slot], profile["token"])
+		scene.on_join(body)
+	else:
+		body.player_name = profile["name"]
+		body.species = species
+		body.ornament = ornament
+		body.color = PALETTE[slot]
+	if not body.is_free():
+		body = _first_free()
+	if body == null:
+		body = _new_crew_member(profile["name"], species, ornament, PALETTE[slot], profile["token"])
+		scene.on_join(body)
+	body.visible = scene.shows_players()
+	_take_control(id, body)
+	print("[game] %s (%s) a rejoint" % [profile["name"], species])
 
 
 func _on_left(id: int) -> void:
-	if not players.has(id):
+	if not people.has(id):
 		return
-	var p: Player = players[id]
-	scene.on_leave(p)
-	print("[game] %s est parti" % p.player_name)
-	players.erase(id)
-	p.queue_free()
+	if players.has(id):
+		var p: Player = players[id]
+		scene.on_leave(p)
+		p.seated = false
+		p.release()
+		players.erase(id)
+	print("[game] %s est parti" % people[id]["name"])
+	people.erase(id)
+
+
+# ---------------------------------------------------------------- équipage
+
+func _new_crew_member(member_name: String, species: String, ornament: String, col: Color, token: String) -> Player:
+	var p := Player.new()
+	p.crew_id = _next_crew_id
+	_next_crew_id += 1
+	p.player_name = member_name
+	p.species = species
+	p.ornament = ornament
+	p.color = col
+	p.owner_token = token
+	p.slot = crew.size()
+	p.last_input_ms = Time.get_ticks_msec()
+	crew.append(p)
+	add_child(p)
+	return p
+
+
+func _first_free() -> Player:
+	for c: Player in crew:
+		if c.is_free():
+			return c
+	return null
+
+
+## Recompose l'équipage : les avatars des joueurs présents, complétés par des recrues
+## d'espèces encore absentes. Chaque joueur reprend son avatar.
+func rebuild_crew(size: int, min_recruits := 0) -> void:
+	for peer in players.keys():
+		var p: Player = players[peer]
+		p.seated = false
+		p.release()
+	players.clear()
+	for c: Player in crew:
+		c.queue_free()
+	crew.clear()
+	var avatars := {}
+	for peer in people:
+		var who: Dictionary = people[peer]
+		avatars[peer] = _new_crew_member(who["name"], who["species"], who["ornament"], who["color"], who["token"])
+	var names := RECRUIT_NAMES.duplicate()
+	names.shuffle()
+	var i := 0
+	while crew.size() < size or i < min_recruits:
+		var present := crew.map(func(c): return c.species)
+		var missing := SPECIES.keys().filter(func(sp): return not (sp in present))
+		var sp: String = missing.pick_random() if not missing.is_empty() else SPECIES.keys().pick_random()
+		_new_crew_member(names[i % names.size()], sp, ["aucun", "plume", "fleur"].pick_random(), RECRUIT_COLORS[i % RECRUIT_COLORS.size()], "")
+		i += 1
+	for peer in avatars:
+		_take_control(peer, avatars[peer], false)
+		net.send(peer, _controlled_msg(avatars[peer], peer))
+
+
+func _take_control(peer: int, body: Player, notify := true) -> void:
+	var who: Dictionary = people[peer]
+	if players.has(peer) and players[peer] != body:
+		var old: Player = players[peer]
+		scene.on_release(old)
+		old.seated = false
+		old.release()
+	players[peer] = body
+	body.peer_id = peer
+	body.controller_name = who["name"]
+	body.controller_color = who["color"]
+	body.axis = Vector2.ZERO
+	body.last_input_ms = Time.get_ticks_msec()
+	who["choosing"] = false
+	if notify:
+		net.send(peer, _controlled_msg(body, peer))
+		net.send(peer, scene.layout_for(body))
+
+
+func _controlled_msg(body: Player, peer: int) -> Dictionary:
+	return {"t": "controle", "name": body.player_name, "species": body.species, "species_label": SPECIES_NAMES[body.species],
+		"ability": SPECIES[body.species], "color": "#" + body.color.to_html(false), "ornament": body.ornament,
+		"own": body.owner_token != "" and body.owner_token == people[peer]["token"]}
+
+
+## Liste de l'équipage envoyée au téléphone (écran « Équipage »).
+func roster_for(peer: int) -> Dictionary:
+	var list: Array = []
+	var mine: Player = players.get(peer)
+	for c: Player in crew:
+		var status := "libre"
+		if c == mine:
+			status = "toi"
+		elif not c.is_free():
+			status = people[c.peer_id]["name"] if people.has(c.peer_id) else "occupé"
+		list.append({"id": c.crew_id, "name": c.player_name, "species": c.species, "species_label": SPECIES_NAMES[c.species],
+			"ability": SPECIES[c.species], "color": "#" + c.color.to_html(false), "ornament": c.ornament,
+			"status": status, "free": c.is_free(), "where": scene.location_name(c),
+			"avatar": c.owner_token != "" and people.has(peer) and c.owner_token == people[peer]["token"]})
+	# toi d'abord, puis les membres libres, puis ceux des autres joueurs
+	var rank := func(e): return 0 if e["status"] == "toi" else (1 if e["free"] else 2)
+	list.sort_custom(func(x, y): return rank.call(x) < rank.call(y))
+	return {"t": "layout", "mode": "equipage", "crew": list}
+
+
+func _open_roster(peer: int) -> void:
+	people[peer]["choosing"] = true
+	var p: Player = players[peer]
+	p.axis = Vector2.ZERO
+	net.send(peer, roster_for(peer))
+
+
+func _refresh_rosters() -> void:
+	for peer in people:
+		if people[peer]["choosing"]:
+			net.send(peer, roster_for(peer))
+
+
+func _pick_crew(peer: int, crew_id: int) -> void:
+	for c: Player in crew:
+		if c.crew_id == crew_id:
+			if c == players.get(peer):
+				_close_roster(peer)
+				return
+			if not c.is_free():
+				net.send(peer, {"t": "toast", "text": "%s est déjà contrôlé par un autre joueur" % c.player_name})
+				net.send(peer, roster_for(peer))
+				return
+			_take_control(peer, c)
+			net.send(peer, {"t": "toast", "text": "Tu contrôles maintenant %s" % c.player_name})
+			_refresh_rosters()
+			return
+
+
+func _close_roster(peer: int) -> void:
+	people[peer]["choosing"] = false
+	if players.has(peer):
+		net.send(peer, scene.layout_for(players[peer]))
 
 
 func _on_input(id: int, axis: Vector2, buttons: Array) -> void:
@@ -191,8 +351,19 @@ func _on_input(id: int, axis: Vector2, buttons: Array) -> void:
 
 
 func _on_action(id: int, action: String, msg: Dictionary) -> void:
-	if players.has(id):
-		scene.on_action(players[id], action, msg)
+	if not players.has(id):
+		return
+	match action:
+		"equipage":
+			if scene.shows_players():
+				_open_roster(id)
+		"pick":
+			if scene.shows_players():
+				_pick_crew(id, int(msg.get("id", 0)))
+		"back":
+			_close_roster(id)
+		_:
+			scene.on_action(players[id], action, msg)
 
 
 func _on_vote(id: int, option: String) -> void:
@@ -206,13 +377,16 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 	var p: Player = players[id]
 	if test_mode and msg.get("t") == "dbg_tp":
 		p.position = Vector2(float(msg.get("x", 0)), float(msg.get("y", 0)))
+		p.prev_buttons = p.buttons.duplicate()
 	if test_mode and msg.get("t") == "dbg_cmd":
 		match str(msg.get("cmd", "")):
 			"shot": _shot(str(msg.get("path", "user://shot.png")))
 			"goto": goto(str(msg.get("scene", "academie")), msg.get("args", {}))
 			_: scene.debug_command(p, msg)
 	var info := {"t": "dbg", "scene": scene_name, "x": p.position.x, "y": p.position.y, "seated": p.seated,
-		"carrying": p.carrying, "medals": p.medals}
+		"carrying": p.carrying, "medals": people[id]["medals"], "me": p.crew_id, "me_name": p.player_name,
+		"crew": crew.map(func(c): return {"id": c.crew_id, "name": c.player_name, "species": c.species, "peer": c.peer_id,
+			"x": c.position.x, "y": c.position.y, "avatar": c.owner_token != ""})}
 	if run:
 		info["run"] = {"ship": run.ship_id, "hull": run.hull, "hull_max": run.hull_max, "fuel": run.fuel, "scrap": run.scrap,
 			"colons": run.colons, "node": run.current, "layer": run.depth(), "type": run.node(run.current)["type"],
@@ -227,11 +401,16 @@ func _process(delta: float) -> void:
 	t += delta
 	_maybe_screenshot()
 	var now := Time.get_ticks_msec()
-	for p: Player in players.values():
-		if now - p.last_input_ms > INPUT_STALE_MS:
+	for p: Player in crew:
+		p.working = false
+	for peer in players:
+		var p: Player = players[peer]
+		if now - p.last_input_ms > INPUT_STALE_MS or people[peer]["choosing"]:
 			p.axis = Vector2.ZERO
+		if p.pressed(3) and scene.shows_players() and not p.seated:
+			_open_roster(peer)
 	scene.update(delta)
-	for p: Player in players.values():
+	for p: Player in crew:
 		p.prev_buttons = p.buttons.duplicate()
 	if not _pending.is_empty():
 		var next: Array = _pending

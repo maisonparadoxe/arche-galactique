@@ -16,7 +16,7 @@ const PLAYER_SHIPS := {
 		"name": "Païkan", "the": "le Païkan", "fem": false,
 		"tag": "L'escorte équilibrée",
 		"desc": "Le vaisseau qui veille sur Éléa. Deux canons, un bouclier, une coque solide.",
-		"hull": 30, "shields": 1, "engines": 2, "weapons": ["canon", "canon"],
+		"hull": 30, "shields": 1, "engines": 2, "weapons": ["canon", "canon"], "crew": 4,
 		"hull_color": Color("#3a2f45"),
 		"layout": {
 			"rooms": [
@@ -36,7 +36,7 @@ const PLAYER_SHIPS := {
 		"name": "Nautile", "the": "le Nautile", "fem": false,
 		"tag": "Le cuirassé",
 		"desc": "Long et lent, mais deux boucliers et une torpille qui les traverse.",
-		"hull": 38, "shields": 2, "engines": 1, "weapons": ["canon", "torpille"],
+		"hull": 38, "shields": 2, "engines": 1, "weapons": ["canon", "torpille"], "crew": 5,
 		"hull_color": Color("#2c3a3d"),
 		"layout": {
 			"rooms": [
@@ -57,7 +57,7 @@ const PLAYER_SHIPS := {
 		"name": "Libellule", "the": "la Libellule", "fem": true,
 		"tag": "L'éclaireuse",
 		"desc": "Petite et fragile, mais très agile : deux canons rapides et de gros moteurs.",
-		"hull": 22, "shields": 1, "engines": 3, "weapons": ["canon_rapide", "canon_rapide"],
+		"hull": 22, "shields": 1, "engines": 3, "weapons": ["canon_rapide", "canon_rapide"], "crew": 3,
 		"hull_color": Color("#2f3d2c"),
 		"layout": {
 			"rooms": [

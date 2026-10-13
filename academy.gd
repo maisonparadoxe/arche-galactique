@@ -44,7 +44,7 @@ var missions := {
 	"feu": {"label": "Feu aux machines", "hint": "Maintiens B près du feu", "done": 0},
 	"repa": {"label": "Réparer l'atelier", "hint": "Maintiens B près de la console", "done": 0},
 	"cellule": {"label": "Cellule d'énergie", "hint": "X à la soute, puis X au réacteur", "done": 0},
-	"reacteur": {"label": "Redémarrer le réacteur", "hint": "À deux : A sur chaque levier", "done": 0},
+	"reacteur": {"label": "Redémarrer le réacteur", "hint": "A sur chaque levier, à deux", "done": 0},
 	"tir": {"label": "Stand de tir", "hint": "A pour s'installer, vise et tire", "done": 0},
 }
 var fire := {"active": true, "pos": Vector2(190, 300), "intensity": 100.0, "respawn_at": 0.0, "helpers": {}}
@@ -59,7 +59,7 @@ var floaters: Array = []              # textes flottants (« +1 médaille »)
 func enter(_args: Dictionary) -> void:
 	_build_walls()
 	_spawn_targets()
-	for p: Player in game.players.values():
+	for p: Player in game.crew:
 		_place(p)
 
 
@@ -82,10 +82,22 @@ func _place(p: Player) -> void:
 
 
 func on_leave(p: Player) -> void:
-	if stand["user"] == p.peer_id:
-		stand["user"] = 0
+	on_release(p)
 	if p.carrying:
+		p.carrying = false
 		floor_cells.append(p.position)
+
+
+func on_release(p: Player) -> void:
+	if p.seated and stand["user"] == p.peer_id:
+		stand["user"] = 0
+
+
+func location_name(p: Player) -> String:
+	for i in ROOMS.size():
+		if _room_rect(i).has_point(p.position):
+			return ROOMS[i]["name"]
+	return ""
 
 
 func on_action(p: Player, action: String, _msg: Dictionary) -> void:
@@ -130,12 +142,18 @@ func debug_info(_p: Player) -> Dictionary:
 		"targets": stand["targets"].map(func(tg): return [tg["base"].x, tg["base"].y + sin(t * 1.6 + tg["phase"]) * 34, tg["alive"]])}
 
 
+## Les médailles vont aux joueurs qui contrôlaient les membres ayant réussi l'épreuve.
 func _award(mission: String, who: Array) -> void:
 	missions[mission]["done"] += 1
+	var credited := {}
 	for p: Player in who:
-		p.medals += 1
-		floaters.append({"pos": p.position + Vector2(0, -40), "text": "+1 médaille", "life": 1.4, "color": p.color})
-		game.net.send(p.peer_id, {"t": "medal", "text": missions[mission]["label"], "medals": p.medals})
+		floaters.append({"pos": p.position + Vector2(0, -40), "text": "+1 médaille" if not p.is_free() else "Bravo !", "life": 1.4, "color": p.color})
+		if p.is_free() or not game.people.has(p.peer_id) or credited.has(p.peer_id):
+			continue
+		credited[p.peer_id] = true
+		var person: Dictionary = game.people[p.peer_id]
+		person["medals"] += 1
+		game.net.send(p.peer_id, {"t": "medal", "text": missions[mission]["label"], "medals": person["medals"]})
 
 
 # ---------------------------------------------------------------- boucle
@@ -201,18 +219,18 @@ func _interact(p: Player) -> void:
 					p.carrying = true
 					game.net.send(p.peer_id, {"t": "buzz"})
 					break
-	# Y : changer de personnage (prochaine étape)
-	if p.pressed(3):
-		game.net.send(p.peer_id, {"t": "toast", "text": "Changer de personnage : à la prochaine étape !"})
+
 
 
 func _update_missions(delta: float) -> void:
 	# --- Feu
 	if fire["active"]:
-		for p: Player in game.players.values():
-			if not p.seated and p.held(1) and p.position.distance_to(fire["pos"]) < NEAR + 10:
-				fire["intensity"] -= (70.0 if p.species == "salamandrin" else 35.0) * delta
-				fire["helpers"][p.peer_id] = p
+		for p: Player in game.crew:
+			var w := work_rate(p)
+			if w > 0.0 and p.position.distance_to(fire["pos"]) < NEAR + 10:
+				fire["intensity"] -= (70.0 if p.species == "salamandrin" else 35.0) * w * delta
+				fire["helpers"][p.crew_id] = p
+				p.working = p.is_free()
 		fire["intensity"] = min(100.0, fire["intensity"] + 4.0 * delta)  # le feu reprend doucement
 		if fire["intensity"] <= 0:
 			fire["active"] = false
@@ -224,10 +242,12 @@ func _update_missions(delta: float) -> void:
 			"pos": Vector2(randf_range(room.position.x, room.end.x), randf_range(room.position.y, room.end.y))}
 	# --- Réparation
 	if repair["broken"]:
-		for p: Player in game.players.values():
-			if not p.seated and p.held(1) and p.position.distance_to(REPAIR_POS) < NEAR:
-				repair["progress"] += (50.0 if p.species == "humain" else 25.0) * delta
-				repair["helpers"][p.peer_id] = p
+		for p: Player in game.crew:
+			var w := work_rate(p)
+			if w > 0.0 and p.position.distance_to(REPAIR_POS) < NEAR:
+				repair["progress"] += (50.0 if p.species == "humain" else 25.0) * w * delta
+				repair["helpers"][p.crew_id] = p
+				p.working = p.is_free()
 		if repair["progress"] >= 100:
 			repair["broken"] = false
 			repair["respawn_at"] = t + 8.0
@@ -237,8 +257,8 @@ func _update_missions(delta: float) -> void:
 	# --- Réacteur à deux
 	var on_a: Player = null
 	var on_b: Player = null
-	for p: Player in game.players.values():
-		if p.seated or not p.held(0):
+	for p: Player in game.crew:
+		if work_rate(p, 0) <= 0.0:   # un membre libre posté sur un levier le tient tout seul
 			continue
 		if p.position.distance_to(LEVER_A) < 45 and on_a == null:
 			on_a = p
@@ -266,8 +286,9 @@ func _update_missions(delta: float) -> void:
 func _alive(helpers: Dictionary) -> Array:
 	var out: Array = []
 	for id in helpers:
-		if game.players.has(id):
-			out.append(game.players[id])
+		var p: Player = helpers[id]
+		if is_instance_valid(p) and p in game.crew:
+			out.append(p)
 	return out
 
 
@@ -466,14 +487,14 @@ func _draw_board() -> void:
 		Art.text(self, Vector2(r.position.x + 38, y), m["hint"], 12, Color(IVORY, 0.5), HORIZONTAL_ALIGNMENT_LEFT, 210)
 	y += 40
 	Art.title(self, Vector2(r.position.x + 18, y), "Médailles", 24)
-	var ranked: Array = game.players.values()
-	ranked.sort_custom(func(a, b): return a.medals > b.medals)
-	for p: Player in ranked:
+	var ranked: Array = game.people.values()
+	ranked.sort_custom(func(a, b): return a["medals"] > b["medals"])
+	for who in ranked:
 		y += 26
 		if y > r.end.y - 12:
 			break
-		draw_circle(Vector2(r.position.x + 24, y - 5), 7, p.color)
-		Art.text(self, Vector2(r.position.x + 38, y), p.player_name, 15, IVORY, HORIZONTAL_ALIGNMENT_LEFT, 150)
-		Art.text(self, Vector2(r.end.x - 52, y), str(p.medals), 15, GOLD, HORIZONTAL_ALIGNMENT_RIGHT, 36)
-	if game.players.is_empty():
+		draw_circle(Vector2(r.position.x + 24, y - 5), 7, who["color"])
+		Art.text(self, Vector2(r.position.x + 38, y), who["name"], 15, IVORY, HORIZONTAL_ALIGNMENT_LEFT, 150)
+		Art.text(self, Vector2(r.end.x - 52, y), str(who["medals"]), 15, GOLD, HORIZONTAL_ALIGNMENT_RIGHT, 36)
+	if game.people.is_empty():
 		Art.text(self, Vector2(r.position.x + 18, y + 28), "En attente d'équipage…", 14, Color(IVORY, 0.45))

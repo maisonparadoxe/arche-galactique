@@ -23,6 +23,17 @@ Académie (hub) → choix du vaisseau → carte du secteur ⇄ combat · événe
 4. **Nœuds** : combat, événement (« Inconnu »), halte, boutique, et le boss au bout.
 5. **Bilan** : victoire ou défaite, colons sauvés, puis retour à l'Académie.
 
+### L'équipage et le changement de personnage
+
+Chaque téléphone contrôle **un** membre d'équipage ; les autres membres sont **libres** et travaillent tout seuls, à mi-vitesse, là où ils se trouvent : ils éteignent les feux et réparent le système de leur salle, et tiennent un levier si on les y laisse.
+
+- **Y (Changer)** ouvre la liste de l'équipage sur le téléphone : portrait, espèce, capacité, salle où se trouve chaque membre. On touche un membre **libre** pour en prendre le contrôle, ou **Retour** pour revenir à la manette. Le personnage qu'on lâche reste sur place et passe en automatique.
+- Ton personnage créé sur le téléphone est marqué d'une ★. Après une déconnexion, tu le retrouves.
+- À l'Académie, trois **recrues** attendent avec les joueurs. Exemple en solo : laisse ton personnage sur un levier du réacteur, prends une recrue et va sur l'autre levier.
+- En expédition, l'équipage est complété par des recrues d'espèces différentes : Païkan 4 membres, Nautile 5, Libellule 3. Les recrues commencent à leurs postes (armes, boucliers, moteurs, pilotage), les joueurs dans la coursive.
+- À la TV, un anneau à ta couleur entoure le personnage que tu contrôles ; les membres libres sont marqués « auto » et un engrenage tourne quand ils travaillent.
+- On ne peut pas changer de personnage pendant qu'on est au poste d'armes : il faut d'abord le quitter.
+
 ### Les votes
 
 Tous les choix collectifs se font sur les téléphones : majorité simple, égalité tirée au sort, abstentions ignorées. Le vote se clôt dès que tout le monde a voté (ou à la fin du minuteur, avec une option par défaut). La TV montre qui a voté quoi.
@@ -42,8 +53,9 @@ Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux
 | Action | Comment |
 | --- | --- |
 | Viser et tirer | **A** devant le poste d'armes : la manette devient le poste d'armes. Le joystick déplace le viseur sur le vaisseau ennemi, un bouton par arme tire quand elle est chargée. Sans artilleur, les armes tirent seules, plus lentement et au hasard. |
-| Éteindre un feu | Maintenir **B** près des flammes (Salamandrin ×2). Un feu abîme le système de la salle, la coque, et peut se propager. |
-| Réparer | Maintenir **B** dans une salle dont le système est endommagé (Humain ×2). |
+| Éteindre un feu | Maintenir **B** près des flammes (Salamandrin ×2). Un feu abîme le système de la salle, la coque, et peut se propager. Un membre libre éteint seul les feux de sa salle. |
+| Réparer | Maintenir **B** dans une salle dont le système est endommagé (Humain ×2). Un membre libre répare seul le système de sa salle. |
+| Changer de personnage | **Y**, puis toucher un membre libre dans la liste. |
 | Se déplacer | Joystick ; on glisse tout seul vers les portes quand on pousse contre un mur à côté. |
 
 - **Boucliers** : chaque couche arrête un tir, puis se recharge (2,5 s).
@@ -69,7 +81,7 @@ Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux
 | `ship_data.gd` | Vaisseaux, armes, ennemis : **tout l'équilibrage est ici** |
 | `ship_layout.gd` | Plans des vaisseaux : salles, portes, déplacements |
 | `art.gd`, `hud.gd` | Palette et ornements Art nouveau, bandeau des ressources |
-| `player.gd` | Un membre d'équipage et son dessin |
+| `player.gd` | Un membre d'équipage (contrôlé ou libre) et son dessin |
 | `net_server.gd`, `qr.gd` | Serveur HTTP/WebSocket, QR code |
 | `web/index.html` | La manette : création du personnage, manette, poste d'armes, votes |
 | `data/events.json` | Événements et haltes |
@@ -83,13 +95,14 @@ Ils demandent Node.js 22 ou plus.
 godot --path . -- --test                 # dans un premier terminal
 node tests/academie.mjs                   # les cinq épreuves de l'Académie
 node tests/expedition.mjs                 # une expédition gagnée, puis une perdue
+node tests/equipage.mjs                   # en solo : changement de personnage, équipage automatique
 ```
 
 `--test` active des commandes réservées aux tests (téléportation, changement de scène, captures d'écran). `--speed=8` accélère le jeu pour `tests/equilibrage.mjs`, qui mesure des combats laissés en automatique total.
 
 ## Limites connues
 
-- Le changement de personnage (Y) et l'équipage non contrôlé ne sont pas encore là.
+- Les membres libres ne se déplacent pas d'eux-mêmes : c'est à toi de les placer.
 - Pas encore de poste ingénieur (énergie, portes) ni de poste pilote actif.
 - Pas de méta-progression sur l'arche ni de mode narratif.
 - Sur iPhone, pas de plein écran dans Safari, pas de vibration, et le mode silencieux coupe les sons.

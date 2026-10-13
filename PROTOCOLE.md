@@ -9,6 +9,7 @@ Messages JSON texte sur WebSocket (port 9080). Le champ `t` donne le type. La pa
 | `hello` | `name` (12 car. max), `token`, `color` (0 à 7), `species` (`humain`, `automate`, `salamandrin`, `colosse`), `ornament` (`aucun`, `fleur`, `plume`, `couronne`) | À la connexion et à chaque reconnexion |
 | `in` | `x`, `y` (joystick, -1 à 1, y vers le bas), `b` (4 booléens : Interagir, Action, Prendre, Changer) | 30 fois par seconde, état complet |
 | `act` | `a` : `"fire"` (avec `w`, numéro de l'arme), `"quit"` | Boutons du poste d'armes |
+| `act` | `a` : `"pick"` (avec `id` du membre), `"back"` | Écran Équipage : prendre un membre libre, ou revenir |
 | `vote` | `id` de l'option choisie | Écrans de vote ; on peut changer d'avis tant que le vote est ouvert |
 | `ping` | `ts` | Chaque seconde |
 | `rtt` | `ms` | Après chaque `pong` |
@@ -20,6 +21,7 @@ Messages JSON texte sur WebSocket (port 9080). Le champ `t` donne le type. La pa
 | --- | --- | --- |
 | `welcome` | `slot`, `color`, `name`, `species`, `ability` | Joueur accepté ; `slot` est la couleur réellement attribuée |
 | `layout` | `mode` + champs du mode (voir ci-dessous) | La manette change d'interface |
+| `controle` | `name`, `species`, `species_label`, `ability`, `color`, `ornament`, `own` | Le personnage que ce téléphone contrôle désormais |
 | `armes` | `weapons` : [{`name`, `charge` 0 à 1, `ready`, `powered`}], `target` | Mise à jour du poste d'armes (environ 6 fois par seconde) |
 | `vote_state` | `counts` {option: nombre}, `mine`, `remaining` (s) | Avancement d'un vote |
 | `vote_done` | `id`, `label`, `tie` | Résultat d'un vote |
@@ -36,6 +38,7 @@ Messages JSON texte sur WebSocket (port 9080). Le champ `t` donne le type. La pa
 | `base` | — | Joystick et 4 boutons |
 | `armes` | `title`, `weapons` | Viseur au joystick, un bouton par arme |
 | `vote` | `title`, `text`, `options` [{`id`, `label`, `desc`, `disabled`}], `mine`, `counts`, `remaining`, `duration` | Liste d'options à voter, minuteur |
+| `equipage` | `crew` : [{`id`, `name`, `species`, `species_label`, `ability`, `color`, `ornament`, `status` (`toi`, `libre` ou nom du joueur), `free`, `where`, `avatar`}] | Liste de l'équipage, ouverte avec Y |
 | `info` | `title`, `text` | Message simple (« Regarde l'écran ») |
 
 ## Principes
