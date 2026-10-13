@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f0d16">
+<title>L'Arche galactique · Manette</title>
+<style>
+  @font-face { font-family: "Federant"; src: url("/fonts/Federant-Regular.ttf") format("truetype"); font-display: swap; }
+  :root {
+    --bg: #0f0d16; --panel: #17131d; --panel2: #1f1a28;
+    --gold: #d4a64a; --gold-dim: #8a6a33; --copper: #b8734a;
+    --ivory: #f2e8d5; --quiet: #a49c8c; --sage: #9caf88; --teal: #2a6f73;
+    --me: #e8a33d;
+    --a: #8fbf7a; --b: #d0603f; --x: #3fb0a8; --y: #e3b448;
+  }
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ivory);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; overscroll-behavior: none; }
+  body.playing { touch-action: none; }
+  .title { font-family: "Federant", Georgia, serif; color: var(--gold); letter-spacing: .5px; }
+  .screen { position: fixed; inset: 0; display: none; }
+  .screen.on { display: block; }
+
+  /* ---------- Volutes Art nouveau aux angles ---------- */
+  .orn { position: fixed; width: 64px; height: 64px; pointer-events: none; z-index: 1; opacity: .9; }
+  .orn.tl { top: 4px; left: 4px; }
+  .orn.tr { top: 4px; right: 4px; transform: scaleX(-1); }
+  .orn.bl { bottom: 4px; left: 4px; transform: scaleY(-1); }
+  .orn.br { bottom: 4px; right: 4px; transform: scale(-1, -1); }
+
+  /* ---------- Création du personnage ---------- */
+  #create.on { display: flex; align-items: center; justify-content: center; gap: 22px; padding: 18px 28px;
+      overflow-y: auto; touch-action: pan-y; flex-wrap: wrap; }
+  .card { border: 2px solid var(--gold); outline: 1px solid rgba(212,166,74,.45); outline-offset: 4px;
+      border-radius: 14px; background: var(--panel); }
+  #preview-card { width: 200px; padding: 12px 12px 14px; text-align: center; flex: none; }
+  #preview { width: 160px; height: 160px; display: block; margin: 0 auto; }
+  #sp-name { font-size: 24px; margin-top: 4px; }
+  #sp-ability { font-size: 13px; color: var(--quiet); margin-top: 4px; min-height: 34px; }
+  #form { display: flex; flex-direction: column; gap: 10px; width: min(460px, 100%); }
+  #form h1 { margin: 0 0 2px; font-size: 26px; }
+  .row label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--quiet); margin-bottom: 5px; }
+  #name { font-size: 18px; padding: 9px 14px; border-radius: 10px; border: 2px solid var(--gold-dim);
+      background: var(--panel2); color: var(--ivory); width: 100%; -webkit-user-select: text; user-select: text; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; outline: 1px solid rgba(255,255,255,.15); }
+  .sw.sel { border-color: var(--ivory); outline: 2px solid var(--gold); outline-offset: 2px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 999px; border: 1.5px solid var(--gold-dim);
+      background: var(--panel2); color: var(--ivory); }
+  .chip.sel { background: var(--gold); color: #1a1208; border-color: var(--gold); font-weight: 700; }
+  #go { margin-top: 4px; align-self: flex-start; font-family: "Federant", Georgia, serif; font-size: 22px; padding: 10px 36px;
+      border-radius: 14px; border: 2px solid var(--gold); background: var(--me); color: #1a1208; }
+
+  /* ---------- Barre du haut ---------- */
+  .bar { position: absolute; top: 0; left: 0; right: 0; height: 46px; display: flex; align-items: center;
+      justify-content: center; gap: 10px; font-size: 14px; color: var(--quiet); pointer-events: none;
+      padding-top: env(safe-area-inset-top); z-index: 2; }
+  .bar canvas { width: 34px; height: 34px; }
+  .who { color: var(--ivory); font-family: "Federant", Georgia, serif; font-size: 19px; }
+  .medals { color: var(--gold); }
+  .net.bad { color: #ff7d6b; }
+
+  /* ---------- Joystick (commun à la manette et au poste) ---------- */
+  .stick-zone { position: absolute; left: 0; top: 46px; bottom: 0; width: 50%; }
+  .stick-hint { position: absolute; left: 25%; top: 58%; transform: translate(-50%, -50%); color: #51486a;
+      font-size: 15px; text-align: center; pointer-events: none; }
+  #stick-base, #stick-knob { position: fixed; border-radius: 50%; pointer-events: none; display: none;
+      transform: translate(-50%, -50%); z-index: 3; }
+  #stick-base { border: 2px solid var(--gold-dim); outline: 1px solid rgba(212,166,74,.25); outline-offset: 6px;
+      background: rgba(212,166,74,.05); }
+  #stick-knob { background: var(--me); border: 2px solid var(--gold); box-shadow: 0 0 18px var(--me); }
+
+  /* ---------- Manette de base ---------- */
+  #pad { background: radial-gradient(ellipse at 25% 60%, #1a1622 0%, var(--bg) 70%); }
+  #buttons { position: absolute; right: max(5vw, env(safe-area-inset-right)); top: 50%;
+      transform: translateY(-42%); width: 62vh; height: 62vh; max-width: 46vw; max-height: 46vw; }
+  .btn { position: absolute; width: 34%; height: 34%; border-radius: 50%; border: 2px solid var(--gold);
+      outline: 1px solid rgba(212,166,74,.5); outline-offset: 4px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #140f0a; transition: transform .05s, filter .05s; }
+  .btn b { font-family: "Federant", Georgia, serif; font-size: clamp(18px, 7vh, 34px); line-height: 1; font-weight: 400; }
+  .btn span { font-size: clamp(10px, 3vh, 13px); margin-top: 2px; font-weight: 700; }
+  .btn.down { transform: scale(.9); filter: brightness(1.3); }
+  .btn[data-i="0"] { background: var(--a); left: 33%; bottom: 0; }
+  .btn[data-i="1"] { background: var(--b); right: 0; top: 33%; }
+  .btn[data-i="2"] { background: var(--x); left: 0; top: 33%; }
+  .btn[data-i="3"] { background: var(--y); left: 33%; top: 0; }
+
+  /* ---------- Poste de tir ---------- */
+  #tir { background: radial-gradient(ellipse at 70% 60%, #123033 0%, #0b1a1c 75%); }
+  .quit { position: absolute; top: 10px; left: max(18px, env(safe-area-inset-left)); z-index: 4;
+      font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 12px;
+      border: 1.5px solid var(--gold); background: #0b1a1c; color: var(--ivory); }
+  .poste-title { position: absolute; top: 60px; right: 0; width: 50%; text-align: center; font-size: 24px; }
+  #fire { position: absolute; left: 75%; top: 60%; transform: translate(-50%, -50%);
+      width: 44vh; height: 44vh; max-width: 40vw; max-height: 40vw; border-radius: 50%;
+      border: 3px solid var(--gold); outline: 1px solid rgba(212,166,74,.5); outline-offset: 7px;
+      background: var(--b); color: #1a0b0b; font-family: "Federant", Georgia, serif; font-size: clamp(22px, 8vh, 40px);
+      box-shadow: 0 0 40px rgba(208,96,63,.35); transition: transform .05s; }
+  #fire.down { transform: translate(-50%, -50%) scale(.92); }
+
+  /* ---------- Messages ---------- */
+  #msg { display: none; position: fixed; inset: 0; z-index: 10; background: rgba(10,8,16,.92);
+      align-items: center; justify-content: center; text-align: center; padding: 24px; font-size: 20px; }
+  #msg.on { display: flex; }
+  #toast { position: fixed; left: 50%; bottom: 14px; transform: translate(-50%, 20px); opacity: 0; z-index: 9;
+      background: var(--panel); border: 1.5px solid var(--gold); border-radius: 12px; padding: 9px 18px;
+      font-size: 15px; transition: opacity .2s, transform .2s; pointer-events: none; max-width: 90vw; text-align: center; }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+  #toast.medal { font-family: "Federant", Georgia, serif; font-size: 20px; color: var(--gold); }
+  #rotate { display: none; position: fixed; inset: 0; z-index: 20; background: var(--bg);
+      align-items: center; justify-content: center; text-align: center; padding: 24px; font-size: 22px; }
+  @media (orientation: portrait) { body.playing #rotate { display: flex; } }
+  #flash { position: fixed; inset: 0; pointer-events: none; background: var(--me); opacity: 0; transition: opacity .2s; z-index: 5; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="whiplash" viewBox="0 0 64 64">
+      <path d="M3 62 C 4 22, 30 6, 22 24 C 18 33, 10 26, 16 20" fill="none" stroke="#d4a64a" stroke-width="2" stroke-linecap="round"/>
+      <path d="M62 3 C 22 4, 8 26, 24 20" fill="none" stroke="#d4a64a" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>
+      <circle cx="16" cy="20" r="2.6" fill="#d4a64a"/>
+    </symbol>
+  </defs>
+</svg>
+<svg class="orn tl"><use href="#whiplash"/></svg><svg class="orn tr"><use href="#whiplash"/></svg>
+<svg class="orn bl"><use href="#whiplash"/></svg><svg class="orn br"><use href="#whiplash"/></svg>
+
+<!-- ======================= Création du personnage ======================= -->
+<section id="create" class="screen on">
+  <div id="preview-card" class="card">
+    <canvas id="preview" width="320" height="320"></canvas>
+    <div id="sp-name" class="title">Humain</div>
+    <div id="sp-ability"></div>
+  </div>
+  <div id="form">
+    <h1 class="title">Ton membre d'équipage</h1>
+    <div class="row"><label for="name">Nom</label><input id="name" maxlength="12" placeholder="Ton nom" autocomplete="off"></div>
+    <div class="row"><label>Couleur</label><div class="swatches" id="colors"></div></div>
+    <div class="row"><label>Espèce</label><div class="chips" id="species"></div></div>
+    <div class="row"><label>Ornement</label><div class="chips" id="ornaments"></div></div>
+    <button id="go">Embarquer</button>
+  </div>
+</section>
+
+<!-- ======================= Manette de base ======================= -->
+<section id="pad" class="screen">
+  <div class="bar"><canvas class="avatar" width="68" height="68"></canvas><span class="who"></span><span class="medals"></span><span class="net"></span></div>
+  <div class="stick-zone"></div>
+  <div class="stick-hint">Pose ton pouce ici<br>pour te déplacer</div>
+  <div id="buttons">
+    <button class="btn" data-i="3"><b>Y</b><span>Changer</span></button>
+    <button class="btn" data-i="2"><b>X</b><span>Prendre</span></button>
+    <button class="btn" data-i="1"><b>B</b><span>Action</span></button>
+    <button class="btn" data-i="0"><b>A</b><span>Interagir</span></button>
+  </div>
+</section>
+
+<!-- ======================= Poste : stand de tir ======================= -->
+<section id="tir" class="screen">
+  <div class="bar"><canvas class="avatar" width="68" height="68"></canvas><span class="who"></span><span class="medals"></span><span class="net"></span></div>
+  <button class="quit">← Quitter le poste</button>
+  <div class="stick-zone"></div>
+  <div class="stick-hint">Pouce ici<br>pour viser</div>
+  <div class="poste-title title">Stand de tir</div>
+  <button id="fire">Tirer</button>
+</section>
+
+<div id="stick-base"></div><div id="stick-knob"></div>
+<div id="msg"></div>
+<div id="toast"></div>
+<div id="rotate"><div><span class="title" style="font-size:28px">L'Arche galactique</span><br><br>Tourne ton téléphone<br>en mode paysage ↻</div></div>
+<div id="flash"></div>
+
+<script>
+(() => {
+  "use strict";
+  const WS_PORT = 9080, SEND_HZ = 30, DEADZONE = 0.12;
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+
+  // Mêmes données que main.gd
+  const PALETTE = ["#e8a33d", "#3fb0a8", "#d0603f", "#9bc07a", "#e08fae", "#7d97e0", "#f2e8d5", "#62c6e6"];
+  const SPECIES = {
+    humain: ["Humain", "Répare deux fois plus vite"],
+    automate: ["Automate", "Visée assistée au stand de tir"],
+    salamandrin: ["Salamandrin", "Éteint les feux deux fois plus vite"],
+    colosse: ["Colosse", "Porte les charges sans ralentir"],
+  };
+  const ORNAMENTS = { aucun: "Aucun", fleur: "Fleur", plume: "Plume", couronne: "Couronne" };
+  const GOLD = "#d4a64a", IVORY = "#f2e8d5";
+
+  // ---------- stockage local (peut échouer, ex. navigation privée) ----------
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+  let token = store.get("arche_token");
+  if (!token) { token = Math.random().toString(36).slice(2) + Date.now().toString(36); store.set("arche_token", token); }
+  let profile = { name: "", color: Math.floor(Math.random() * 8), species: "humain", ornament: "aucun" };
+  try { Object.assign(profile, JSON.parse(store.get("arche_profile") || "{}")); } catch {}
+  if (!SPECIES[profile.species]) profile.species = "humain";
+  if (!ORNAMENTS[profile.ornament]) profile.ornament = "aucun";
+
+  // ---------- dessin du personnage (même description que player.gd) ----------
+  function shade(hex, k) {
+    const n = parseInt(hex.slice(1), 16);
+    const f = (v) => Math.round(v * (1 - k));
+    return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+  }
+  function drawBody(ctx, sp, orn, col, r, fx = 1, fy = 0) {
+    const dark = shade(col, 0.35);
+    ctx.lineWidth = 2; ctx.strokeStyle = GOLD;
+    if (sp === "automate") {
+      ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(-r, -r, 2 * r, 2 * r, 6); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(r * .55, -r); ctx.lineTo(r * .75, -r - 11); ctx.stroke();
+      ctx.fillStyle = GOLD; ctx.beginPath(); ctx.arc(r * .75, -r - 12, 3.5, 0, 7); ctx.fill();
+    } else if (sp === "salamandrin") {
+      const px = -fy, py = fx;
+      ctx.fillStyle = dark; ctx.beginPath();
+      ctx.moveTo(px * r * .7 - fx * r * .3, py * r * .7 - fy * r * .3);
+      ctx.lineTo(-fx * (r + 12), -fy * (r + 12));
+      ctx.lineTo(-px * r * .7 - fx * r * .3, -py * r * .7 - fy * r * .3); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
+    } else if (sp === "colosse") {
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+      ctx.strokeStyle = dark; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, r * .62, Math.PI * .15, Math.PI * .85); ctx.stroke();
+      ctx.strokeStyle = GOLD; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
+    } else {
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
+    }
+    const px = -fy, py = fx;
+    for (const s of [-1, 1]) {
+      const ex = fx * r * .35 + px * s * r * .3, ey = fy * r * .35 + py * s * r * .3;
+      ctx.fillStyle = IVORY; ctx.beginPath(); ctx.arc(ex, ey, r * .17, 0, 7); ctx.fill();
+      ctx.fillStyle = "#1a1420"; ctx.beginPath(); ctx.arc(ex + fx * 1.2, ey + fy * 1.2, r * .08, 0, 7); ctx.fill();
+    }
+    const ty = -r;
+    if (orn === "fleur") {
+      for (let i = 0; i < 5; i++) {
+        const a = Math.PI * 2 * i / 5 - Math.PI / 2;
+        ctx.fillStyle = "#f0b8c8"; ctx.beginPath(); ctx.arc(-6 + Math.cos(a) * 5, ty - 3 + Math.sin(a) * 5, 3.6, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = GOLD; ctx.beginPath(); ctx.arc(-6, ty - 3, 2.6, 0, 7); ctx.fill();
+    } else if (orn === "plume") {
+      const path = () => { ctx.beginPath(); for (let i = 0; i <= 8; i++) { const u = i / 8; const x = 4 - 14 * u, y = ty - 22 * u + 6 * u * u; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } };
+      ctx.lineCap = "round"; ctx.strokeStyle = IVORY; ctx.lineWidth = 4; path(); ctx.stroke();
+      ctx.strokeStyle = GOLD; ctx.lineWidth = 1.2; path(); ctx.stroke();
+    } else if (orn === "couronne") {
+      ctx.fillStyle = GOLD; ctx.beginPath();
+      [[-9, 3], [-9, -7], [-4.5, -2], [0, -11], [4.5, -2], [9, -7], [9, 3]].forEach(([x, y], i) => i ? ctx.lineTo(x, ty + y) : ctx.moveTo(x, ty + y));
+      ctx.fill();
+    }
+  }
+  function paintAvatar(canvas, scale) {
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(scale, 0, 0, scale, canvas.width / 2, canvas.height / 2 + 6 * scale);
+    const r = profile.species === "colosse" ? 23 : 18;
+    drawBody(ctx, profile.species, profile.ornament, PALETTE[profile.color], r, 0.85, 0.5);
+  }
+
+  // ---------- écran de création ----------
+  function buildCreate() {
+    $("#name").value = profile.name;
+    $("#colors").innerHTML = PALETTE.map((c, i) => `<button class="sw" data-v="${i}" style="background:${c}" aria-label="Couleur ${i + 1}"></button>`).join("");
+    $("#species").innerHTML = Object.entries(SPECIES).map(([k, v]) => `<button class="chip" data-v="${k}">${v[0]}</button>`).join("");
+    $("#ornaments").innerHTML = Object.entries(ORNAMENTS).map(([k, v]) => `<button class="chip" data-v="${k}">${v}</button>`).join("");
+    $("#colors").onclick = (e) => { const b = e.target.closest(".sw"); if (b) { profile.color = +b.dataset.v; refreshCreate(); } };
+    $("#species").onclick = (e) => { const b = e.target.closest(".chip"); if (b) { profile.species = b.dataset.v; refreshCreate(); } };
+    $("#ornaments").onclick = (e) => { const b = e.target.closest(".chip"); if (b) { profile.ornament = b.dataset.v; refreshCreate(); } };
+    refreshCreate();
+  }
+  function refreshCreate() {
+    $$("#colors .sw").forEach((b) => b.classList.toggle("sel", +b.dataset.v === profile.color));
+    $$("#species .chip").forEach((b) => b.classList.toggle("sel", b.dataset.v === profile.species));
+    $$("#ornaments .chip").forEach((b) => b.classList.toggle("sel", b.dataset.v === profile.ornament));
+    $("#sp-name").textContent = SPECIES[profile.species][0];
+    $("#sp-ability").textContent = SPECIES[profile.species][1];
+    document.documentElement.style.setProperty("--me", PALETTE[profile.color]);
+    paintAvatar($("#preview"), 4);
+  }
+  buildCreate();
+
+  // ---------- état ----------
+  const state = { x: 0, y: 0, b: [false, false, false, false] };
+  let ws = null, joined = false, mode = "create", retry = 0, full = false, audio = null;
+
+  function show(id) {
+    mode = id;
+    $$(".screen").forEach((s) => s.classList.toggle("on", s.id === id));
+    releaseStick();
+    state.b = [false, false, false, false];
+    btnByPointer.clear();
+    $$(".btn").forEach((b) => b.classList.remove("down"));
+  }
+  function message(text) { const m = $("#msg"); m.innerHTML = text || ""; m.classList.toggle("on", !!text); }
+  function netLabel(text, bad) { $$(".net").forEach((n) => { n.textContent = text; n.classList.toggle("bad", !!bad); }); }
+  let toastTimer = 0;
+  function toast(text, medal) {
+    const t = $("#toast"); t.textContent = text; t.classList.toggle("medal", !!medal); t.classList.add("on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), medal ? 2600 : 2200);
+  }
+
+  // ---------- son et vibration (des bonus, jamais indispensables) ----------
+  function unlockAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {} }
+  function beep(freq = 660, ms = 60, delay = 0) {
+    if (!audio) return;
+    try {
+      const o = audio.createOscillator(), g = audio.createGain(), t0 = audio.currentTime + delay;
+      o.type = "triangle"; o.frequency.value = freq; g.gain.setValueAtTime(0.09, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms / 1000);
+      o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + ms / 1000);
+    } catch {}
+  }
+  function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch {} }
+  function buzz() {
+    beep(); vibrate(30);
+    const f = $("#flash"); f.style.opacity = 0.16; setTimeout(() => (f.style.opacity = 0), 60);
+  }
+
+  // ---------- réseau ----------
+  function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+  function connect() {
+    netLabel("connexion…", true);
+    try { ws = new WebSocket(`ws://${location.hostname}:${WS_PORT}`); } catch { scheduleReconnect(); return; }
+    ws.onopen = () => { retry = 0; full = false; send({ t: "hello", token, ...profile }); };
+    ws.onmessage = (ev) => {
+      let m; try { m = JSON.parse(ev.data); } catch { return; }
+      switch (m.t) {
+        case "welcome":
+          joined = true; message("");
+          if (m.slot !== profile.color) { profile.color = m.slot; store.set("arche_profile", JSON.stringify(profile)); }
+          document.documentElement.style.setProperty("--me", m.color);
+          $$(".who").forEach((w) => (w.textContent = m.name));
+          $$(".avatar").forEach((c) => paintAvatar(c, 1.1));
+          break;
+        case "layout": show(m.mode === "tir" ? "tir" : "pad"); break;
+        case "pong": {
+          const rtt = Math.round(performance.now() - m.ts);
+          netLabel(`${rtt} ms`, rtt > 120); send({ t: "rtt", ms: rtt });
+          break;
+        }
+        case "buzz": buzz(); break;
+        case "toast": toast(m.text); beep(440, 80); break;
+        case "medal":
+          toast(`Médaille : ${m.text}`, true);
+          $$(".medals").forEach((e) => (e.textContent = `✦ ${m.medals}`));
+          beep(660, 90); beep(880, 90, 0.1); beep(1320, 160, 0.2); vibrate([30, 40, 30]);
+          break;
+        case "full": full = true; message("Le vaisseau est complet (8 membres d'équipage).<br>Réessaie plus tard."); break;
+      }
+    };
+    ws.onclose = () => { joined = false; if (!full) scheduleReconnect(); };
+    ws.onerror = () => {};
+  }
+  function scheduleReconnect() {
+    netLabel("reconnexion…", true);
+    message("Connexion perdue avec le vaisseau…<br><small>reconnexion automatique</small>");
+    retry = Math.min(retry + 1, 5);
+    setTimeout(connect, 500 * retry);
+  }
+  setInterval(() => { if (joined) send({ t: "in", x: +state.x.toFixed(3), y: +state.y.toFixed(3), b: state.b }); }, 1000 / SEND_HZ);
+  setInterval(() => { if (joined) send({ t: "ping", ts: performance.now() }); }, 1000);
+
+  // ---------- embarquer ----------
+  $("#go").addEventListener("click", () => {
+    profile.name = $("#name").value.trim().slice(0, 12);
+    store.set("arche_profile", JSON.stringify(profile));
+    unlockAudio();
+    try { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); } catch {}
+    try { screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape").catch(() => {}); } catch {}
+    document.body.classList.add("playing");
+    show("pad");
+    connect();
+  });
+
+  // ---------- joystick flottant + boutons (multitouch via pointer events) ----------
+  const stick = { id: null, ox: 0, oy: 0, r: 70 };
+  const btnByPointer = new Map();
+  const base = $("#stick-base"), knob = $("#stick-knob");
+  function placeStick(x, y) {
+    stick.r = Math.min(window.innerHeight * 0.17, 85);
+    base.style.width = base.style.height = `${stick.r * 2}px`;
+    knob.style.width = knob.style.height = `${stick.r * 0.9}px`;
+    base.style.left = knob.style.left = `${x}px`;
+    base.style.top = knob.style.top = `${y}px`;
+    base.style.display = knob.style.display = "block";
+    $$(".stick-hint").forEach((h) => (h.style.display = "none"));
+  }
+  function moveStick(x, y) {
+    let dx = x - stick.ox, dy = y - stick.oy;
+    const len = Math.hypot(dx, dy);
+    if (len > stick.r) { dx = dx / len * stick.r; dy = dy / len * stick.r; }
+    knob.style.left = `${stick.ox + dx}px`; knob.style.top = `${stick.oy + dy}px`;
+    const mag = Math.min(len / stick.r, 1);
+    if (mag < DEADZONE) { state.x = 0; state.y = 0; return; }
+    const scaled = (mag - DEADZONE) / (1 - DEADZONE), dl = Math.hypot(dx, dy);
+    state.x = dx / dl * scaled; state.y = dy / dl * scaled;
+  }
+  function releaseStick() {
+    stick.id = null; state.x = 0; state.y = 0;
+    base.style.display = knob.style.display = "none";
+  }
+  document.addEventListener("pointerdown", (e) => {
+    if (mode !== "pad" && mode !== "tir") return;
+    const btn = e.target.closest(".btn");
+    if (btn && mode === "pad") {
+      btnByPointer.set(e.pointerId, btn);
+      state.b[+btn.dataset.i] = true; btn.classList.add("down");
+      unlockAudio();
+      return;
+    }
+    if (stick.id === null && e.target.closest(".stick-zone")) {
+      stick.id = e.pointerId; stick.ox = e.clientX; stick.oy = e.clientY;
+      placeStick(e.clientX, e.clientY);
+    }
+  });
+  document.addEventListener("pointermove", (e) => { if (e.pointerId === stick.id) moveStick(e.clientX, e.clientY); });
+  function endPointer(e) {
+    if (e.pointerId === stick.id) releaseStick();
+    const btn = btnByPointer.get(e.pointerId);
+    if (btn) {
+      btnByPointer.delete(e.pointerId);
+      if (![...btnByPointer.values()].includes(btn)) { state.b[+btn.dataset.i] = false; btn.classList.remove("down"); }
+    }
+  }
+  ["pointerup", "pointercancel"].forEach((t) => document.addEventListener(t, endPointer));
+
+  // ---------- poste de tir ----------
+  const fire = $("#fire");
+  fire.addEventListener("pointerdown", () => { fire.classList.add("down"); send({ t: "act", a: "fire" }); beep(330, 50); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((t) => fire.addEventListener(t, () => fire.classList.remove("down")));
+  $$(".quit").forEach((q) => q.addEventListener("pointerdown", () => send({ t: "act", a: "quit" })));
+
+  // ---------- bloquer les gestes du navigateur pendant le jeu ----------
+  const playing = () => document.body.classList.contains("playing");
+  document.addEventListener("touchmove", (e) => { if (playing()) e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchstart", (e) => { if (playing() && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  document.addEventListener("gesturestart", (e) => e.preventDefault());
+  document.addEventListener("dblclick", (e) => { if (playing()) e.preventDefault(); });
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
+})();
+</script>
+</body>
+</html>
