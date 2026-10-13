@@ -8,22 +8,35 @@ Messages JSON texte sur WebSocket (port 9080). Le champ `t` donne le type. La pa
 | --- | --- | --- |
 | `hello` | `name` (12 car. max), `token`, `color` (0 à 7), `species` (`humain`, `automate`, `salamandrin`, `colosse`), `ornament` (`aucun`, `fleur`, `plume`, `couronne`) | À la connexion et à chaque reconnexion |
 | `in` | `x`, `y` (joystick, -1 à 1, y vers le bas), `b` (4 booléens : Interagir, Action, Prendre, Changer) | 30 fois par seconde, état complet |
-| `act` | `a` : `"fire"`, `"quit"` | Boutons des postes |
+| `act` | `a` : `"fire"` (avec `w`, numéro de l'arme), `"quit"` | Boutons du poste d'armes |
+| `vote` | `id` de l'option choisie | Écrans de vote ; on peut changer d'avis tant que le vote est ouvert |
 | `ping` | `ts` | Chaque seconde |
 | `rtt` | `ms` | Après chaque `pong` |
-| `dbg`, `dbg_tp` | `x`, `y` pour `dbg_tp` | Tests uniquement (`dbg_tp` exige le mode `--test`) |
+| `dbg`, `dbg_tp`, `dbg_cmd` | voir `tests/` | Tests uniquement (`dbg_tp` et `dbg_cmd` exigent le mode `--test`) |
 
 ## PC → téléphone
 
 | `t` | Champs | Effet |
 | --- | --- | --- |
 | `welcome` | `slot`, `color`, `name`, `species`, `ability` | Joueur accepté ; `slot` est la couleur réellement attribuée |
-| `layout` | `mode` (`"base"`, `"tir"`), `title` | La manette change d'interface |
+| `layout` | `mode` + champs du mode (voir ci-dessous) | La manette change d'interface |
+| `armes` | `weapons` : [{`name`, `charge` 0 à 1, `ready`, `powered`}], `target` | Mise à jour du poste d'armes (environ 6 fois par seconde) |
+| `vote_state` | `counts` {option: nombre}, `mine`, `remaining` (s) | Avancement d'un vote |
+| `vote_done` | `id`, `label`, `tie` | Résultat d'un vote |
 | `toast` | `text` | Court message en bas de l'écran |
-| `medal` | `text`, `medals` | Épreuve réussie : message, carillon, vibration, compteur |
+| `medal` | `text`, `medals` | Épreuve réussie à l'Académie |
 | `buzz` | — | Bip et vibration courte |
 | `pong` | `ts` | Réponse au `ping` |
 | `full` | — | Vaisseau complet (8 joueurs) |
+
+### Modes de `layout`
+
+| `mode` | Champs | Écran |
+| --- | --- | --- |
+| `base` | — | Joystick et 4 boutons |
+| `armes` | `title`, `weapons` | Viseur au joystick, un bouton par arme |
+| `vote` | `title`, `text`, `options` [{`id`, `label`, `desc`, `disabled`}], `mine`, `counts`, `remaining`, `duration` | Liste d'options à voter, minuteur |
+| `info` | `title`, `text` | Message simple (« Regarde l'écran ») |
 
 ## Principes
 

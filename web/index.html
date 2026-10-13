@@ -91,18 +91,50 @@
   .btn[data-i="2"] { background: var(--x); left: 0; top: 33%; }
   .btn[data-i="3"] { background: var(--y); left: 33%; top: 0; }
 
-  /* ---------- Poste de tir ---------- */
-  #tir { background: radial-gradient(ellipse at 70% 60%, #123033 0%, #0b1a1c 75%); }
+  /* ---------- Poste d'armes ---------- */
+  #armes { background: radial-gradient(ellipse at 70% 60%, #123033 0%, #0b1a1c 75%); }
   .quit { position: absolute; top: 10px; left: max(18px, env(safe-area-inset-left)); z-index: 4;
       font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 12px;
       border: 1.5px solid var(--gold); background: #0b1a1c; color: var(--ivory); }
-  .poste-title { position: absolute; top: 60px; right: 0; width: 50%; text-align: center; font-size: 24px; }
-  #fire { position: absolute; left: 75%; top: 60%; transform: translate(-50%, -50%);
-      width: 44vh; height: 44vh; max-width: 40vw; max-height: 40vw; border-radius: 50%;
-      border: 3px solid var(--gold); outline: 1px solid rgba(212,166,74,.5); outline-offset: 7px;
-      background: var(--b); color: #1a0b0b; font-family: "Federant", Georgia, serif; font-size: clamp(22px, 8vh, 40px);
-      box-shadow: 0 0 40px rgba(208,96,63,.35); transition: transform .05s; }
-  #fire.down { transform: translate(-50%, -50%) scale(.92); }
+  .poste-title { position: absolute; top: 54px; right: 0; width: 50%; text-align: center; font-size: 24px; }
+  #target { position: absolute; top: 86px; right: 0; width: 50%; text-align: center; font-size: 14px; color: var(--quiet); }
+  #weapons { position: absolute; right: max(4vw, env(safe-area-inset-right)); top: 112px; bottom: 16px; width: 44vw;
+      display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+  .wbtn { position: relative; flex: 1; max-height: 30vh; border-radius: 18px; border: 2px solid var(--gold);
+      outline: 1px solid rgba(212,166,74,.45); outline-offset: 4px; overflow: hidden;
+      background: #1a2224; color: var(--ivory); font-family: "Federant", Georgia, serif; font-size: clamp(18px, 6vh, 30px); }
+  .wbtn .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: rgba(95,212,196,.25); transition: width .15s linear; }
+  .wbtn .lbl { position: relative; }
+  .wbtn.ready { background: var(--b); color: #1a0b0b; box-shadow: 0 0 28px rgba(208,96,63,.45); }
+  .wbtn.ready .fill { display: none; }
+  .wbtn.off { opacity: .35; border-color: var(--gold-dim); }
+  .wbtn.down { transform: scale(.96); }
+
+  /* ---------- Vote ---------- */
+  #vote { background: radial-gradient(ellipse at 50% 30%, #1d1726 0%, var(--bg) 75%); padding: 14px 70px 0; }
+  #vote.on { display: flex; flex-direction: column; }
+  #vote-title { font-size: clamp(20px, 7vh, 30px); text-align: center; margin-top: 4px; }
+  #vote-text { font-size: clamp(12px, 3.6vh, 16px); color: var(--quiet); text-align: center; max-height: 24vh; overflow-y: auto;
+      margin: 4px auto 8px; max-width: 720px; white-space: pre-line; touch-action: pan-y; }
+  #vote-options { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px;
+      align-content: center; overflow-y: auto; padding: 4px; touch-action: pan-y; }
+  .vopt { position: relative; text-align: left; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--gold-dim);
+      background: var(--panel2); color: var(--ivory); font: inherit; min-height: 54px; }
+  .vopt b { display: block; font-family: "Federant", Georgia, serif; font-weight: 400; font-size: clamp(16px, 5vh, 21px); }
+  .vopt small { display: block; color: var(--quiet); font-size: 12px; margin-top: 2px; }
+  .vopt .dots { position: absolute; right: 10px; top: 8px; display: flex; gap: 4px; }
+  .vopt .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); display: block; }
+  .vopt.mine { border-color: var(--gold); background: #2c2318; box-shadow: 0 0 18px rgba(212,166,74,.3); }
+  .vopt.mine b { color: var(--gold); }
+  .vopt.off { opacity: .35; }
+  .vopt.won { border-color: var(--sage); background: #1f2a1c; }
+  #vote-timer { height: 6px; margin: 8px 0 12px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+  #vote-timer div { height: 100%; width: 100%; background: var(--gold); transition: width 1s linear; }
+
+  /* ---------- Info ---------- */
+  #info.on { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 30px; }
+  #info-title { font-size: 30px; }
+  #info-text { color: var(--quiet); font-size: 17px; max-width: 600px; }
 
   /* ---------- Messages ---------- */
   #msg { display: none; position: fixed; inset: 0; z-index: 10; background: rgba(10,8,16,.92);
@@ -163,14 +195,29 @@
   </div>
 </section>
 
-<!-- ======================= Poste : stand de tir ======================= -->
-<section id="tir" class="screen">
+<!-- ======================= Poste d'armes ======================= -->
+<section id="armes" class="screen">
   <div class="bar"><canvas class="avatar" width="68" height="68"></canvas><span class="who"></span><span class="medals"></span><span class="net"></span></div>
   <button class="quit">← Quitter le poste</button>
   <div class="stick-zone"></div>
   <div class="stick-hint">Pouce ici<br>pour viser</div>
-  <div class="poste-title title">Stand de tir</div>
-  <button id="fire">Tirer</button>
+  <div class="poste-title title" id="armes-title">Poste d'armes</div>
+  <div id="target"></div>
+  <div id="weapons"></div>
+</section>
+
+<!-- ======================= Vote ======================= -->
+<section id="vote" class="screen">
+  <div id="vote-title" class="title"></div>
+  <div id="vote-text" class="scroll"></div>
+  <div id="vote-options" class="scroll"></div>
+  <div id="vote-timer"><div></div></div>
+</section>
+
+<!-- ======================= Information ======================= -->
+<section id="info" class="screen">
+  <div id="info-title" class="title">L'Arche galactique</div>
+  <div id="info-text">Regarde l'écran</div>
 </section>
 
 <div id="stick-base"></div><div id="stick-knob"></div>
@@ -190,7 +237,7 @@
   const PALETTE = ["#e8a33d", "#3fb0a8", "#d0603f", "#9bc07a", "#e08fae", "#7d97e0", "#f2e8d5", "#62c6e6"];
   const SPECIES = {
     humain: ["Humain", "Répare deux fois plus vite"],
-    automate: ["Automate", "Visée assistée au stand de tir"],
+    automate: ["Automate", "Visée assistée (cible plus large)"],
     salamandrin: ["Salamandrin", "Éteint les feux deux fois plus vite"],
     colosse: ["Colosse", "Porte les charges sans ralentir"],
   };
@@ -342,7 +389,10 @@
           $$(".who").forEach((w) => (w.textContent = m.name));
           $$(".avatar").forEach((c) => paintAvatar(c, 1.1));
           break;
-        case "layout": show(m.mode === "tir" ? "tir" : "pad"); break;
+        case "layout": applyLayout(m); break;
+        case "armes": renderWeapons(m.weapons || [], m.target); break;
+        case "vote_state": voteState(m); break;
+        case "vote_done": voteDone(m); break;
         case "pong": {
           const rtt = Math.round(performance.now() - m.ts);
           netLabel(`${rtt} ms`, rtt > 120); send({ t: "rtt", ms: rtt });
@@ -410,7 +460,7 @@
     base.style.display = knob.style.display = "none";
   }
   document.addEventListener("pointerdown", (e) => {
-    if (mode !== "pad" && mode !== "tir") return;
+    if (mode !== "pad" && mode !== "armes") return;
     const btn = e.target.closest(".btn");
     if (btn && mode === "pad") {
       btnByPointer.set(e.pointerId, btn);
@@ -434,15 +484,98 @@
   }
   ["pointerup", "pointercancel"].forEach((t) => document.addEventListener(t, endPointer));
 
-  // ---------- poste de tir ----------
-  const fire = $("#fire");
-  fire.addEventListener("pointerdown", () => { fire.classList.add("down"); send({ t: "act", a: "fire" }); beep(330, 50); });
-  ["pointerup", "pointercancel", "pointerleave"].forEach((t) => fire.addEventListener(t, () => fire.classList.remove("down")));
+  // ---------- interfaces envoyées par le PC ----------
+  const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function applyLayout(m) {
+    switch (m.mode) {
+      case "armes":
+        $("#armes-title").textContent = m.title || "Poste d'armes";
+        renderWeapons(m.weapons || [], "", true);
+        show("armes");
+        break;
+      case "vote": renderVote(m); show("vote"); break;
+      case "info":
+        $("#info-title").textContent = m.title || "L'Arche galactique";
+        $("#info-text").textContent = m.text || "Regarde l'écran";
+        show("info");
+        break;
+      default: show("pad");
+    }
+  }
+
+  // Poste d'armes : un bouton par arme, rempli selon sa charge
+  let weaponsCount = -1;
+  function renderWeapons(ws, target, rebuild) {
+    const box = $("#weapons");
+    if (rebuild || ws.length !== weaponsCount) {
+      weaponsCount = ws.length;
+      box.innerHTML = ws.map((w, i) => `<button class="wbtn" data-w="${i}"><span class="fill"></span><span class="lbl">${esc(w.name)}</span></button>`).join("");
+    }
+    ws.forEach((w, i) => {
+      const b = box.children[i]; if (!b) return;
+      const wasReady = b.classList.contains("ready");
+      b.classList.toggle("ready", !!w.ready && w.powered);
+      b.classList.toggle("off", !w.powered);
+      b.querySelector(".fill").style.width = `${Math.round((w.charge || 0) * 100)}%`;
+      b.querySelector(".lbl").textContent = w.powered ? (w.ready ? `Tirer : ${w.name}` : w.name) : `${w.name} (hors service)`;
+      if (!wasReady && w.ready && w.powered && !rebuild) { beep(880, 40); vibrate(15); }
+    });
+    $("#target").textContent = target ? `Visée : ${target}` : "";
+  }
+  $("#weapons").addEventListener("pointerdown", (e) => {
+    const b = e.target.closest(".wbtn"); if (!b) return;
+    b.classList.add("down"); setTimeout(() => b.classList.remove("down"), 120);
+    send({ t: "act", a: "fire", w: +b.dataset.w }); beep(330, 50);
+  });
   $$(".quit").forEach((q) => q.addEventListener("pointerdown", () => send({ t: "act", a: "quit" })));
+
+  // Vote : options, pastilles des votes, minuteur
+  let vote = null;
+  function renderVote(m) {
+    vote = { options: m.options || [], mine: m.mine || "", counts: m.counts || {}, duration: m.duration || 20, done: "" };
+    $("#vote-title").textContent = m.title || "";
+    $("#vote-text").textContent = m.text || "";
+    $("#vote-options").innerHTML = vote.options.map((o) =>
+      `<button class="vopt${o.disabled ? " off" : ""}" data-id="${esc(o.id)}"><span class="dots"></span><b>${esc(o.label)}</b>${o.desc ? `<small>${esc(o.desc)}</small>` : ""}</button>`).join("");
+    paintVote();
+    setTimer(m.remaining ?? vote.duration, true);
+  }
+  function paintVote() {
+    if (!vote) return;
+    $$("#vote-options .vopt").forEach((b) => {
+      const id = b.dataset.id;
+      b.classList.toggle("mine", id === vote.mine);
+      b.classList.toggle("won", id === vote.done);
+      const n = vote.counts[id] || 0;
+      b.querySelector(".dots").innerHTML = "<i></i>".repeat(n);
+    });
+  }
+  function setTimer(remaining, instant) {
+    const bar = $("#vote-timer div");
+    if (instant) { bar.style.transition = "none"; }
+    bar.style.width = `${Math.max(0, Math.min(1, remaining / (vote ? vote.duration : 20))) * 100}%`;
+    if (instant) { void bar.offsetWidth; bar.style.transition = ""; }
+  }
+  function voteState(m) {
+    if (!vote) return;
+    vote.counts = m.counts || {}; vote.mine = m.mine || "";
+    paintVote(); setTimer(m.remaining || 0);
+  }
+  function voteDone(m) {
+    if (!vote) return;
+    vote.done = m.id; paintVote();
+    toast(m.tie ? `Égalité, tirage au sort : ${m.label}` : `Choix : ${m.label}`);
+    beep(660, 80); beep(990, 120, 0.1); vibrate(25);
+  }
+  $("#vote-options").addEventListener("click", (e) => {
+    const b = e.target.closest(".vopt"); if (!b || b.classList.contains("off") || !vote || vote.done) return;
+    vote.mine = b.dataset.id; paintVote();
+    send({ t: "vote", id: b.dataset.id }); beep(520, 40); vibrate(10);
+  });
 
   // ---------- bloquer les gestes du navigateur pendant le jeu ----------
   const playing = () => document.body.classList.contains("playing");
-  document.addEventListener("touchmove", (e) => { if (playing()) e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchmove", (e) => { if (playing() && !e.target.closest(".scroll")) e.preventDefault(); }, { passive: false });
   document.addEventListener("touchstart", (e) => { if (playing() && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   document.addEventListener("gesturestart", (e) => e.preventDefault());
   document.addEventListener("dblclick", (e) => { if (playing()) e.preventDefault(); });

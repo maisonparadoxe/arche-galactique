@@ -1,63 +1,96 @@
-# L'Arche galactique — Prototype : l'Académie galactique
+# L'Arche galactique — Prototype
 
-Une salle d'entraînement dans un vaisseau immobile. Les joueurs scannent le QR code, créent leur membre d'équipage sur leur téléphone, puis passent cinq épreuves dans six salles.
+Jeu coopératif de canapé (Godot 4.5) : le PC fait tourner le jeu sur la TV, chaque joueur se sert de son téléphone comme manette, sans rien installer. L'équipage escorte l'arche *Éléa* à travers un secteur hanté par l'Indicible.
 
 ## Lancer
 
 1. Installer **Godot 4.5** (version standard).
 2. Dans Godot, « Importer » et choisir `project.godot`, puis lancer avec F5.
-3. Sur chaque téléphone, **connecté au même Wi-Fi que le PC**, scanner le QR code affiché en haut à droite (ou taper l'adresse indiquée).
+3. Sur chaque téléphone, **connecté au même Wi-Fi que le PC**, scanner le QR code (ou taper l'adresse affichée).
 4. Créer son personnage et appuyer sur « Embarquer ».
 
 Au premier lancement, autorise Godot dans le pare-feu pour les réseaux privés. Ports utilisés : **8080** (page manette) et **9080** (WebSocket).
 
-## Création du personnage
+## Déroulement d'une partie
 
-Sur le téléphone : nom, couleur (8 au choix ; si elle est prise, le jeu en attribue une autre), ornement (aucun, fleur, plume, couronne) et espèce. Le profil est mémorisé sur le téléphone pour les prochaines parties.
+```
+Académie (hub) → choix du vaisseau → carte du secteur ⇄ combat · événement · halte · boutique → boss → bilan → Académie
+```
 
-| Espèce | Capacité provisoire | Épreuve où elle brille |
-| --- | --- | --- |
-| Humain | Répare deux fois plus vite | Atelier |
-| Automate | Visée assistée (cible deux fois plus large) | Stand de tir |
-| Salamandrin | Éteint les feux deux fois plus vite | Salle des machines |
-| Colosse | Porte les charges sans ralentir | Cellule d'énergie |
+1. **Académie galactique** : on rejoint, on crée son personnage, on s'entraîne aux épreuves. Pour partir, un joueur appuie sur **A** à la **table de commandement** (Pont central). Sur le PC, la touche **Entrée** fait la même chose.
+2. **Choix du vaisseau** : vote sur les téléphones entre trois vaisseaux.
+3. **Carte du secteur** : 6 sauts jusqu'à l'Indicible. On vote chaque destination. Un saut coûte 1 carburant ; sans carburant, la coque perd 3 points.
+4. **Nœuds** : combat, événement (« Inconnu »), halte, boutique, et le boss au bout.
+5. **Bilan** : victoire ou défaite, colons sauvés, puis retour à l'Académie.
 
-## Les épreuves
+### Les votes
 
-| Salle | Épreuve | Comment |
-| --- | --- | --- |
-| Salle des machines | Feu | Maintenir **B** près du feu. Le feu reprend doucement si on s'arrête ; il réapparaît ailleurs après 6 s. |
-| Atelier | Réparation | Maintenir **B** près de la console. Elle retombe en panne après 8 s. |
-| Soute → Réacteur | Cellule d'énergie | **X** près de la pile de cellules, porter (on ralentit, sauf le Colosse), **X** sur le socle du réacteur. **X** ailleurs pose la cellule par terre. |
-| Réacteur | Redémarrage à deux | Deux joueurs maintiennent **A** chacun sur un levier pendant 2 s. Impossible seul pour l'instant. |
-| Stand de tir | Tir | **A** devant la console : la manette devient un poste de tir. Le joystick déplace le viseur, « Tirer » tire. Trois cibles à abattre. |
+Tous les choix collectifs se font sur les téléphones : majorité simple, égalité tirée au sort, abstentions ignorées. Le vote se clôt dès que tout le monde a voté (ou à la fin du minuteur, avec une option par défaut). La TV montre qui a voté quoi.
 
-Chaque épreuve réussie donne une médaille à ceux qui y ont participé : le téléphone joue un petit carillon et vibre, la TV affiche « +1 médaille » et met à jour le tableau.
+### Les vaisseaux
 
-**Y (Changer)** affiche pour l'instant « à la prochaine étape » : le changement de personnage arrive avec l'équipage complet.
+| Vaisseau | Coque | Boucliers | Moteurs | Armes | Plan |
+| --- | --- | --- | --- | --- | --- |
+| Païkan | 30 | 1 | 2 | 2 canons | 7 salles en croix |
+| Nautile | 38 | 2 | 1 | canon + torpille (traverse les boucliers) | 8 salles en longueur |
+| Libellule | 22 | 1 | 3 | 2 canons rapides | 5 salles, compacte |
+
+### Le combat
+
+Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux.**
+
+| Action | Comment |
+| --- | --- |
+| Viser et tirer | **A** devant le poste d'armes : la manette devient le poste d'armes. Le joystick déplace le viseur sur le vaisseau ennemi, un bouton par arme tire quand elle est chargée. Sans artilleur, les armes tirent seules, plus lentement et au hasard. |
+| Éteindre un feu | Maintenir **B** près des flammes (Salamandrin ×2). Un feu abîme le système de la salle, la coque, et peut se propager. |
+| Réparer | Maintenir **B** dans une salle dont le système est endommagé (Humain ×2). |
+| Se déplacer | Joystick ; on glisse tout seul vers les portes quand on pousse contre un mur à côté. |
+
+- **Boucliers** : chaque couche arrête un tir, puis se recharge (2,5 s).
+- **Moteurs** : chance d'esquive (6 % par niveau), seulement si le **pilotage** fonctionne.
+- **Armes** : chaque arme a besoin d'un niveau du système d'armes ; un système endommagé coupe des armes.
+- Viser une salle ennemie endommage son système : les **boucliers** pour ouvrir une brèche, les **armes** pour le faire taire, le **cœur** de l'Indicible pour doubler les dégâts.
+
+### Événements, haltes, boutique
+
+- Les **événements** et **haltes** sont dans `data/events.json` : texte, choix, conséquences aléatoires pondérées (ferraille, carburant, coque, colons, améliorations, combat). On peut en ajouter sans toucher au code.
+- La **boutique** vend carburant et réparations, plus deux objets tirés au hasard (bouclier, moteurs, canon lourd, torpille). On vote un achat à la fois.
 
 ## Fichiers
 
 | Fichier | Rôle |
 | --- | --- |
-| `main.gd` | L'Académie : plan du vaisseau, murs, épreuves, tableau, décor Art nouveau |
-| `player.gd` | Un membre d'équipage et son dessin (espèce, ornement, couleur) |
-| `net_server.gd` | Serveur HTTP (page manette, police) et WebSocket (manettes) |
-| `qr.gd` | Générateur de QR code |
-| `web/index.html` | La manette : création du personnage, manette de base, poste de tir |
-| `fonts/` | Police de titre Federant (licence SIL OFL, voir `OFL-Federant.txt`) |
-| `PROTOCOLE.md` | Les messages échangés entre téléphones et PC |
+| `game.gd` | Contrôleur : réseau, joueurs, enchaînement des scènes |
+| `game_scene.gd`, `vote_scene.gd` | Bases des scènes et du système de vote |
+| `academy.gd` | L'Académie (hub et épreuves) |
+| `ship_select.gd`, `sector_map.gd`, `event_scene.gd`, `shop.gd`, `results.gd` | Scènes de vote |
+| `combat.gd` | Le combat entre vaisseaux |
+| `run_state.gd` | État d'une expédition et génération de la carte |
+| `ship_data.gd` | Vaisseaux, armes, ennemis : **tout l'équilibrage est ici** |
+| `ship_layout.gd` | Plans des vaisseaux : salles, portes, déplacements |
+| `art.gd`, `hud.gd` | Palette et ornements Art nouveau, bandeau des ressources |
+| `player.gd` | Un membre d'équipage et son dessin |
+| `net_server.gd`, `qr.gd` | Serveur HTTP/WebSocket, QR code |
+| `web/index.html` | La manette : création du personnage, manette, poste d'armes, votes |
+| `data/events.json` | Événements et haltes |
+| `tests/` | Faux téléphones pour les tests automatiques |
 
-La page `web/index.html` est relue à chaque chargement : modifie-la, puis recharge simplement la page sur le téléphone.
+## Tests automatiques
 
-## Mode test
+Ils demandent Node.js 22 ou plus.
 
-`godot --path . -- --test` active deux commandes de développement : la téléportation d'un joueur (`dbg_tp`) et la capture d'écran automatique (`--shot=chemin.png --shot-at=5`). Elles ne servent qu'aux tests automatiques.
+```
+godot --path . -- --test                 # dans un premier terminal
+node tests/academie.mjs                   # les cinq épreuves de l'Académie
+node tests/expedition.mjs                 # une expédition gagnée, puis une perdue
+```
+
+`--test` active des commandes réservées aux tests (téléportation, changement de scène, captures d'écran). `--speed=8` accélère le jeu pour `tests/equilibrage.mjs`, qui mesure des combats laissés en automatique total.
 
 ## Limites connues
 
-- Le changement de personnage (Y) n'est pas encore là.
-- Pas de personnages non contrôlés : le réacteur à deux demande deux joueurs.
-- L'écran du téléphone peut se mettre en veille : règle la veille sur un délai long pendant les tests.
+- Le changement de personnage (Y) et l'équipage non contrôlé ne sont pas encore là.
+- Pas encore de poste ingénieur (énergie, portes) ni de poste pilote actif.
+- Pas de méta-progression sur l'arche ni de mode narratif.
 - Sur iPhone, pas de plein écran dans Safari, pas de vibration, et le mode silencieux coupe les sons.
-- Pour **exporter** le jeu, ajoute `web/*` et `fonts/*.ttf` aux « Filtres pour exporter des fichiers non-ressources ».
+- Pour **exporter** le jeu, ajoute `web/*`, `fonts/*.ttf` et `data/*.json` aux « Filtres pour exporter des fichiers non-ressources ».

@@ -30,6 +30,13 @@ func radius() -> float:
 	return 23.0 if species == "colosse" else 18.0
 
 
+## Remet à zéro ce qui dépend de la scène (appelé à chaque changement de scène).
+func reset_state() -> void:
+	seated = false
+	carrying = false
+	axis = Vector2.ZERO
+
+
 func pressed(i: int) -> bool:
 	## Vrai uniquement à l'image où le bouton vient d'être enfoncé.
 	return buttons[i] and not prev_buttons[i]

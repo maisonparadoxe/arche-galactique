@@ -1,14 +1,15 @@
 extends Node
 class_name NetServer
-## Serveur réseau du prototype.
-## - Sert la page manette (web/index.html) en HTTP sur HTTP_PORT.
+## Serveur réseau.
+## - Sert la page manette (web/index.html) et sa police en HTTP sur HTTP_PORT.
 ## - Accepte les manettes en WebSocket sur WS_PORT.
 ## Les messages sont du JSON texte. Voir PROTOCOLE.md.
 
 signal player_joined(peer_id: int, profile: Dictionary)
 signal player_left(peer_id: int)
 signal player_input(peer_id: int, axis: Vector2, buttons: Array)
-signal player_action(peer_id: int, action: String)
+signal player_action(peer_id: int, action: String, msg: Dictionary)
+signal player_vote(peer_id: int, option: String)
 signal player_rtt(peer_id: int, rtt_ms: int)
 signal debug_requested(peer_id: int, msg: Dictionary)
 
@@ -189,11 +190,15 @@ func _handle(id: int, p: Dictionary, text: String) -> void:
 			player_input.emit(id, axis, buttons)
 		"act":
 			if p["joined"]:
-				player_action.emit(id, str(msg.get("a", "")))
+				player_action.emit(id, str(msg.get("a", "")), msg)
+		"vote":
+			if p["joined"]:
+				player_vote.emit(id, str(msg.get("id", "")))
 		"ping":
 			send(id, {"t": "pong", "ts": msg.get("ts", 0)})
 		"rtt":
 			if p["joined"]:
 				player_rtt.emit(id, int(msg.get("ms", -1)))
-		"dbg", "dbg_tp":
-			debug_requested.emit(id, msg)
+		"dbg", "dbg_tp", "dbg_cmd":
+			if p["joined"]:
+				debug_requested.emit(id, msg)
