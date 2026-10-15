@@ -33,8 +33,9 @@ const PILE_POS := Vector2(100, 630)
 const SOCKET_POS := Vector2(900, 480)
 const LEVER_A := Vector2(712, 640)
 const LEVER_B := Vector2(900, 640)
-const COMMAND_POS := Vector2(500, 652)     # table de commandement : lance une expédition
-const SPAWN := Vector2(500, 540)
+const COMMAND_POS := Vector2(500, 648)     # table de commandement : lance une expédition
+const COMMAND_ZONE := Rect2(370, 590, 260, 100)   # où l'on peut appuyer sur A pour partir
+const SPAWN := Vector2(500, 505)
 const NEAR := 60.0
 
 var walls: Array[Rect2] = []
@@ -54,6 +55,7 @@ var reactor := {"hold": 0.0, "cooldown_until": 0.0, "flash": 0.0}
 var socket_flash := 0.0
 var floor_cells: Array = []           # cellules posées par terre
 var floaters: Array = []              # textes flottants (« +1 médaille »)
+var near_command: Dictionary = {}     # peer_id -> vrai si le joueur est sur la table de départ
 
 
 func enter(_args: Dictionary) -> void:
@@ -78,7 +80,10 @@ func on_join(p: Player) -> void:
 
 
 func _place(p: Player) -> void:
-	p.position = SPAWN + Vector2(-90 + (p.slot % 4) * 60, -40 + (p.slot / 4) * 70)
+	# une rangée en haut du Pont central, puis les côtés : la flèche de départ reste dégagée
+	var spots := [Vector2(385, 495), Vector2(462, 495), Vector2(539, 495), Vector2(616, 495),
+		Vector2(385, 570), Vector2(616, 570), Vector2(385, 630), Vector2(616, 630)]
+	p.position = spots[p.slot % spots.size()]
 
 
 func on_leave(p: Player) -> void:
@@ -193,7 +198,12 @@ func _move(p: Player, delta: float) -> void:
 
 func _interact(p: Player) -> void:
 	# A : table de commandement → lancer une expédition
-	if p.pressed(0) and p.position.distance_to(COMMAND_POS) < NEAR + 10:
+	var on_table := COMMAND_ZONE.has_point(p.position)
+	if on_table and not near_command.get(p.peer_id, false):
+		game.net.send(p.peer_id, {"t": "toast", "text": "Appuie sur A pour lancer l'expédition !"})
+		game.net.send(p.peer_id, {"t": "buzz"})
+	near_command[p.peer_id] = on_table
+	if p.pressed(0) and on_table:
 		game.goto("choix")
 		return
 	# A : s'installer au stand de tir
@@ -392,15 +402,43 @@ func _wall_ends(w: Rect2) -> Array:
 
 
 func _draw_command() -> void:
-	# Table de commandement : une table ronde dorée avec une carte stellaire
+	# Table de commandement : grande, dorée, qui clignote, avec une flèche animée au-dessus
 	var c := COMMAND_POS
-	var pulse := 0.5 + 0.5 * sin(t * 2.2)
-	draw_circle(c, 46 + pulse * 6, Color(GOLD, 0.06 + pulse * 0.05))
-	draw_rect(Rect2(c - Vector2(60, 16), Vector2(120, 32)), Color("#1a1620"))
-	draw_rect(Rect2(c - Vector2(60, 16), Vector2(120, 32)), GOLD, false, 2.0)
-	for i in 5:
-		draw_circle(c + Vector2(-44 + i * 22, sin(i * 1.7) * 6), 2.5, Art.CELL if i != 2 else GOLD)
-	Art.title(self, c + Vector2(-120, -26), "Lancer l'expédition (A)", 15, Color(GOLD, 0.6 + 0.4 * pulse), HORIZONTAL_ALIGNMENT_CENTER, 240)
+	var pulse := 0.5 + 0.5 * sin(t * 3.0)
+	var blink := fmod(t, 1.0) < 0.5
+	# ondes qui s'élargissent depuis la table, comme un signal
+	for k in 3:
+		var u := fmod(t * 0.6 + k / 3.0, 1.0)
+		draw_arc(c, 60 + u * 90, 0, TAU, 64, Color(GOLD, 0.35 * (1.0 - u)), 2.0)
+	draw_circle(c, 80, Color(GOLD, 0.05 + pulse * 0.07))
+	var table := Rect2(c - Vector2(120, 24), Vector2(240, 48))
+	draw_rect(table.grow(4), Color(GOLD, 0.25 + 0.25 * pulse))
+	draw_rect(table, Color("#241a12"))
+	draw_rect(table, Art.IVORY if blink else GOLD, false, 3.0)
+	for i in 9:
+		draw_circle(c + Vector2(-96 + i * 24, 15 + sin(i * 1.7 + t * 2.0) * 2), 2.0, Art.CELL if i != 4 else GOLD)
+	Art.title(self, table.position + Vector2(0, 27), "LANCER L'EXPÉDITION", 17, Art.IVORY if blink else GOLD, HORIZONTAL_ALIGNMENT_CENTER, table.size.x)
+	# pastille « A » comme sur le téléphone
+	var a := Vector2(table.end.x + 4, table.position.y + 2)
+	draw_circle(a, 15, Color("#8fbf7a"))
+	draw_arc(a, 15, 0, TAU, 24, GOLD, 2.0)
+	Art.title(self, a + Vector2(-15, 7), "A", 19, Color("#140f0a"), HORIZONTAL_ALIGNMENT_CENTER, 30)
+	# grosse flèche qui rebondit vers la table
+	var bob := absf(sin(t * 4.0)) * 12.0
+	var tip := Vector2(c.x, table.position.y - 6 - bob)
+	var arrow := PackedVector2Array([
+		tip, tip + Vector2(-30, -30), tip + Vector2(-12, -30), tip + Vector2(-12, -62),
+		tip + Vector2(12, -62), tip + Vector2(12, -30), tip + Vector2(30, -30)])
+	draw_colored_polygon(arrow, Color(GOLD, 0.85))
+	arrow.append(arrow[0])
+	draw_polyline(arrow, Art.IVORY if blink else Art.COPPER, 2.5, true)
+	# bulle « A » au-dessus des joueurs qui sont sur la table
+	for p: Player in game.players.values():
+		if COMMAND_ZONE.has_point(p.position):
+			var b := p.position + Vector2(0, -p.radius() - 26 - absf(sin(t * 6.0)) * 4)
+			draw_circle(b, 13, Color("#8fbf7a"))
+			draw_arc(b, 13, 0, TAU, 24, GOLD, 2.0)
+			Art.title(self, b + Vector2(-13, 7), "A", 17, Color("#140f0a"), HORIZONTAL_ALIGNMENT_CENTER, 26)
 
 
 func _draw_missions() -> void:
