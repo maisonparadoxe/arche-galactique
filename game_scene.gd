@@ -54,6 +54,12 @@ func work_rate(p: Player, button := 1) -> float:
 	return 0.5
 
 
+## Touches utiles là où se trouve le personnage : {numéro de bouton: libellé}.
+## 0 = A, 1 = B, 2 = X, 3 = Y. Le téléphone fait grossir et pulser ces boutons.
+func hints_for(_p: Player) -> Dictionary:
+	return {}
+
+
 func on_action(_p: Player, _action: String, _msg: Dictionary) -> void:
 	pass
 

@@ -22,6 +22,7 @@ Messages JSON texte sur WebSocket (port 9080). Le champ `t` donne le type. La pa
 | `welcome` | `slot`, `color`, `name`, `species`, `ability` | Joueur accepté ; `slot` est la couleur réellement attribuée |
 | `layout` | `mode` + champs du mode (voir ci-dessous) | La manette change d'interface |
 | `controle` | `name`, `species`, `species_label`, `ability`, `color`, `ornament`, `own` | Le personnage que ce téléphone contrôle désormais |
+| `hint` | `hints` {« 0 » à « 3 » : libellé} | Touches utiles à l'endroit où l'on se trouve : elles grossissent, pulsent et affichent l'action ; vide = aucune |
 | `armes` | `weapons` : [{`name`, `charge` 0 à 1, `ready`, `powered`}], `target` | Mise à jour du poste d'armes (environ 6 fois par seconde) |
 | `vote_state` | `counts` {option: nombre}, `mine`, `remaining` (s) | Avancement d'un vote |
 | `vote_done` | `id`, `label`, `tie` | Résultat d'un vote |

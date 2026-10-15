@@ -196,6 +196,25 @@ func _move(p: Player, delta: float) -> void:
 				break
 
 
+func hints_for(p: Player) -> Dictionary:
+	var h := {}
+	if COMMAND_ZONE.has_point(p.position):
+		h[0] = "Lancer"
+	elif stand["user"] == 0 and p.position.distance_to(STAND_CONSOLE) < NEAR:
+		h[0] = "S'installer"
+	elif p.position.distance_to(LEVER_A) < 45 or p.position.distance_to(LEVER_B) < 45:
+		h[0] = "Levier"
+	if fire["active"] and p.position.distance_to(fire["pos"]) < NEAR + 10:
+		h[1] = "Éteindre"
+	elif repair["broken"] and p.position.distance_to(REPAIR_POS) < NEAR:
+		h[1] = "Réparer"
+	if p.carrying:
+		h[2] = "Brancher" if p.position.distance_to(SOCKET_POS) < NEAR else "Poser"
+	elif p.position.distance_to(PILE_POS) < NEAR or floor_cells.any(func(c): return p.position.distance_to(c) < 45):
+		h[2] = "Prendre"
+	return h
+
+
 func _interact(p: Player) -> void:
 	# A : table de commandement → lancer une expédition
 	var on_table := COMMAND_ZONE.has_point(p.position)

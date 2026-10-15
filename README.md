@@ -34,6 +34,10 @@ Chaque téléphone contrôle **un** membre d'équipage ; les autres membres sont
 - À la TV, un anneau à ta couleur entoure le personnage que tu contrôles ; les membres libres sont marqués « auto » et un engrenage tourne quand ils travaillent.
 - On ne peut pas changer de personnage pendant qu'on est au poste d'armes : il faut d'abord le quitter.
 
+### Les touches qui se mettent en avant
+
+Quand ton personnage se trouve près de quelque chose d'utile, la bonne touche du téléphone grossit, pulse et affiche l'action : **A « Lancer »** sur la table de départ, **A « Levier »**, **A « S'installer »** ou **A « Armes »** devant un poste, **B « Éteindre »** près d'un feu, **B « Réparer »** dans une salle endommagée, **X « Prendre / Poser / Brancher »** pour les cellules. Les autres touches s'estompent. Au poste d'armes, une arme chargée pulse aussi.
+
 ### Les votes
 
 Tous les choix collectifs se font sur les téléphones : majorité simple, égalité tirée au sort, abstentions ignorées. Le vote se clôt dès que tout le monde a voté (ou à la fin du minuteur, avec une option par défaut). La TV montre qui a voté quoi.

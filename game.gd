@@ -92,6 +92,7 @@ func _switch(name: String, args: Dictionary) -> void:
 		p.reset_state()
 	for who in people.values():
 		who["choosing"] = false
+		who["hint_key"] = "?"
 	if name == "academie":
 		rebuild_crew(0, ACADEMY_RECRUITS)
 	scene_name = name
@@ -275,6 +276,7 @@ func _take_control(peer: int, body: Player, notify := true) -> void:
 	body.axis = Vector2.ZERO
 	body.last_input_ms = Time.get_ticks_msec()
 	who["choosing"] = false
+	who["hint_key"] = "?"
 	if notify:
 		net.send(peer, _controlled_msg(body, peer))
 		net.send(peer, scene.layout_for(body))
@@ -333,6 +335,22 @@ func _pick_crew(peer: int, crew_id: int) -> void:
 			net.send(peer, {"t": "toast", "text": "Tu contrôles maintenant %s" % c.player_name})
 			_refresh_rosters()
 			return
+
+
+## Envoie à chaque téléphone les touches utiles du moment, seulement quand elles changent.
+func _push_hints() -> void:
+	for peer in players:
+		var p: Player = players[peer]
+		var h: Dictionary = {}
+		if scene.shows_players() and not p.seated and not people[peer]["choosing"]:
+			h = scene.hints_for(p)
+		var key := JSON.stringify(h)
+		if people[peer].get("hint_key", "") != key:
+			people[peer]["hint_key"] = key
+			var out := {}
+			for b in h:
+				out[str(b)] = h[b]
+			net.send(peer, {"t": "hint", "hints": out})
 
 
 func _close_roster(peer: int) -> void:
@@ -410,6 +428,7 @@ func _process(delta: float) -> void:
 		if p.pressed(3) and scene.shows_players() and not p.seated:
 			_open_roster(peer)
 	scene.update(delta)
+	_push_hints()
 	for p: Player in crew:
 		p.prev_buttons = p.buttons.duplicate()
 	if not _pending.is_empty():

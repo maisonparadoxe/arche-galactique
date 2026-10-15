@@ -45,6 +45,14 @@ check(lay.crew.every((c) => c.where !== undefined), `chaque membre indique où i
 a.send({ t: "act", a: "back" }); await sleep(150);
 check(a.last("layout").mode === "base", "Retour : la manette revient");
 
+// --- Touches mises en avant selon l'endroit
+await a.tp(500, 640); await sleep(150);
+check(a.last("hint") && a.last("hint").hints["0"] === "Lancer", `sur la table de départ, A devient « ${a.last("hint")?.hints["0"]} »`);
+await a.tp(500, 300); await sleep(150);
+check(a.last("hint") && a.last("hint").hints["1"] === "Réparer", `près de la console de l'atelier, B devient « ${a.last("hint")?.hints["1"]} »`);
+await a.tp(500, 530); await sleep(150);
+check(a.last("hint") && Object.keys(a.last("hint").hints).length === 0, "loin de tout, aucune touche mise en avant");
+
 // --- Réacteur à deux, tout seul : laisser son avatar au levier A, prendre une recrue
 await a.tp(712, 640);
 lay = await openRoster(a);
@@ -54,7 +62,8 @@ d = await a.dbg();
 check(d.me === recruit.id && a.last("layout").mode === "base", `prise de contrôle de ${recruit.name} (${recruit.species_label})`);
 check(a.last("controle") && a.last("controle").name === recruit.name && a.last("controle").own === false, "le téléphone affiche le personnage contrôlé");
 check(d.crew.find((c) => c.id === avatarId).peer === 0, "l'avatar laissé au levier devient libre");
-await a.tp(900, 640);
+await a.tp(900, 640); await sleep(150);
+check(a.last("hint").hints["0"] === "Levier", "près d'un levier, A devient « Levier »");
 await hold(a, A, 2500);
 d = await a.dbg();
 check(d.done.reacteur >= 1, `réacteur redémarré seul, avec l'avatar resté au levier (${d.done.reacteur})`);
@@ -88,6 +97,10 @@ check(d.sys_damage.armes === 1, "les armes sont endommagées");
 let repaired = false;
 for (let i = 0; i < 40 && !repaired; i++) { await sleep(300); repaired = (await a.dbg()).sys_damage.armes === 0; }
 check(repaired, "la recrue de la salle des armes répare toute seule");
+await a.cmd({ cmd: "damage", system: "boucliers" });
+const bouc = d.rooms.find((r) => r.id === "boucliers");
+await a.tp(bouc.x + 40, bouc.y - 30); await sleep(200);
+check(a.last("hint").hints["1"] === "Réparer" || a.last("hint").hints["1"] === "Éteindre", `en combat, dans une salle endommagée, B devient « ${a.last("hint").hints["1"]} »`);
 // Incendie dans la salle des boucliers : la recrue l'éteint seule
 await a.cmd({ cmd: "fire", room: "boucliers" });
 let out = false;

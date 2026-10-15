@@ -198,6 +198,22 @@ func _interact(p: Player) -> void:
 		game.net.send(p.peer_id, layout_for(p))
 
 
+func hints_for(p: Player) -> Dictionary:
+	var h := {}
+	if state != "fight":
+		return h
+	if gunner == 0 and p.position.distance_to(weapons_console) < NEAR:
+		h[0] = "Armes"
+	for f in fires:
+		if p.position.distance_to(f["pos"]) < NEAR + 6:
+			h[1] = "Éteindre"
+	if not h.has(1):
+		var room := layout.room_at(p.position)
+		if not room.is_empty() and sys.has(room["system"]) and sys[room["system"]]["damage"] > 0:
+			h[1] = "Réparer"
+	return h
+
+
 func on_action(p: Player, action: String, msg: Dictionary) -> void:
 	match action:
 		"quit":
