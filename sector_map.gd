@@ -42,7 +42,7 @@ func _describe(type: String) -> String:
 
 func node_pos(n: Dictionary) -> Vector2:
 	var p: Vector2 = n["pos"]
-	return Vector2(AREA.position.x + p.x / (RunState.MAP_LAYERS - 1) * AREA.size.x, AREA.position.y + p.y * AREA.size.y)
+	return Vector2(AREA.position.x + p.x / (game.run.layers - 1) * AREA.size.x, AREA.position.y + p.y * AREA.size.y)
 
 
 func on_vote_result(id: String) -> void:
@@ -167,7 +167,7 @@ func _node_icon(type: String, c: Vector2) -> void:
 func _draw_corruption(run: RunState) -> void:
 	if run.depth() < 1:
 		return
-	var front := AREA.position.x + (float(run.depth()) - 0.6) / (RunState.MAP_LAYERS - 1) * AREA.size.x
+	var front := AREA.position.x + (float(run.depth()) - 0.6) / (run.layers - 1) * AREA.size.x
 	for i in 14:
 		var x := front * (i / 14.0)
 		draw_rect(Rect2(x, 150, front / 14.0 + 1, 480), Color(Art.CORRUPT, 0.05 + 0.1 * i / 14.0))

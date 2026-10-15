@@ -42,7 +42,7 @@ func _draw() -> void:
 	Art.paragraph(self, Vector2(card.position.x + 70, card.position.y + 150), _summary(run), card.size.x - 140, 20, Art.IVORY)
 	var y := card.position.y + 260
 	var rows := [
-		["Vaisseau", run.ship_name],
+		["Vaisseau", "%s · %s" % [run.ship_name, run.diff.get("name", "")]],
 		["Sauts effectués", str(run.stats["jumps"])],
 		["Vaisseaux vaincus", str(run.stats["combats"])],
 		["Événements", str(run.stats["events"])],

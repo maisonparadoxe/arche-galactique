@@ -39,6 +39,7 @@ var people: Dictionary = {}            # peer_id -> {name, color, slot, token, m
 var crew: Array = []                   # tous les membres d'équipage présents (contrôlés ou libres)
 var profiles_by_token: Dictionary = {} # token -> emplacement de couleur
 var _next_crew_id := 1
+var last_difficulty := "normal"        # proposée par défaut au vote suivant
 var run: RunState
 var scene: GameScene
 var scene_name := ""
@@ -113,8 +114,8 @@ func _refresh_players() -> void:
 
 
 ## Démarre une expédition avec le vaisseau choisi.
-func start_run(ship_id: String) -> void:
-	run = RunState.create(ship_id)
+func start_run(ship_id: String, difficulty := "normal") -> void:
+	run = RunState.create(ship_id, difficulty)
 	rebuild_crew(maxi(int(ShipData.PLAYER_SHIPS[ship_id].get("crew", 4)), people.size()))
 	goto("carte")
 
@@ -407,7 +408,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 			"x": c.position.x, "y": c.position.y, "avatar": c.owner_token != ""})}
 	if run:
 		info["run"] = {"ship": run.ship_id, "hull": run.hull, "hull_max": run.hull_max, "fuel": run.fuel, "scrap": run.scrap,
-			"colons": run.colons, "node": run.current, "layer": run.depth(), "type": run.node(run.current)["type"],
+			"colons": run.colons, "node": run.current, "difficulty": run.difficulty, "layers": run.layers, "layer": run.depth(), "type": run.node(run.current)["type"],
 			"weapons": run.weapons, "shields": run.shields, "engines": run.engines, "victory": run.victory, "ended": run.ended}
 	info.merge(scene.debug_info(p), true)
 	net.send(id, info)

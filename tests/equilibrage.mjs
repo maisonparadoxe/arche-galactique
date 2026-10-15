@@ -12,7 +12,8 @@ const dbg = async () => { const n = inbox.length; send({ t: "dbg" }); for (let i
 send({ t: "hello", name: "Bot", token: "bot", color: 0, species: "humain" });
 await sleep(300);
 send({ t: "dbg_cmd", cmd: "goto", scene: "choix" }); await sleep(400);
-send({ t: "vote", id: ship }); await sleep(3500);
+send({ t: "vote", id: ship }); await sleep(1800);
+send({ t: "vote", id: process.argv[4] || "normal" }); await sleep(3500);
 for (const e of enemies) {
   send({ t: "dbg_cmd", cmd: "goto", scene: "combat", args: { enemy: e } }); await sleep(300);
   let d = await dbg();

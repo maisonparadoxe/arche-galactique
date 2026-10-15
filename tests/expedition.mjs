@@ -54,9 +54,13 @@ check(a.last("layout").mode === "vote" && a.last("layout").options.length === 3,
 await shot(a, "choix-vaisseau");
 a.vote("paikan"); b.vote("nautile"); await sleep(300);
 b.vote("paikan");
+await sleep(1800);
+check(a.last("layout").mode === "vote" && a.last("layout").options.map((o) => o.id).join() === "decouverte,normal,difficile", "puis vote de la difficulté (Découverte, Normal, Difficile)");
+await shot(a, "choix-difficulte");
+both(a, b, "normal");
 d = await waitScene(a, "carte", 8000);
 check(d.run.ship === "paikan" && d.run.fuel === 4, `expédition lancée sur le Païkan (carburant ${d.run.fuel})`);
-check(a.last("vote_done") && a.last("vote_done").id === "paikan", "le résultat du vote est annoncé sur le téléphone");
+check(a.last("vote_done") && a.last("vote_done").id === "normal", "le résultat du vote est annoncé sur le téléphone");
 
 // ---- Parcours de la carte jusqu'au boss
 let combatTested = false, shopTested = false, eventTested = false, guard = 0;
@@ -187,12 +191,16 @@ await a.tp(500, 618);
 await hold(a, [true, false, false, false], 120);
 await waitScene(a, "choix");
 both(a, b, "libellule");
+await sleep(1800);
+both(a, b, "decouverte");
 d = await waitScene(a, "carte", 8000);
+check(d.run.difficulty === "decouverte" && d.run.layers === 4 && d.run.fuel === 6 && d.run.scrap === 25, `Découverte : 3 sauts, carburant ${d.run.fuel}, ferraille ${d.run.scrap}`);
 check(d.run.ship === "libellule" && d.run.hull === 22, "nouvelle expédition sur la Libellule");
 const combat = d.choices.find((c) => c.type === "combat");
 both(a, b, String(combat.id));
 d = await waitScene(a, "combat", 8000);
 check(d.rooms.length === 5, "plan de la Libellule (5 salles)");
+check(d.enemy_hull === 4, `en Découverte, l'éclaireur n'a que ${d.enemy_hull} de coque (8 en Normal)`);
 await a.cmd({ cmd: "hull", value: 0 });
 d = await a.dbg();
 check(d.state === "lost", "la coque tombe à zéro : défaite");

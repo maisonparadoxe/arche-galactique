@@ -5,9 +5,12 @@ class_name RunState
 const START_FUEL := 4
 const START_SCRAP := 10
 const START_COLONS := 10000
-const MAP_LAYERS := 7          # 0 = départ, 6 = boss
+const MAP_LAYERS := 7          # longueur par défaut : 0 = départ, 6 = boss
 const DRIFT_DAMAGE := 3        # sauter sans carburant abîme la coque
 
+var difficulty := "normal"
+var diff: Dictionary = {}      # entrée de ShipData.DIFFICULTIES
+var layers := MAP_LAYERS       # nombre de couches de la carte (départ et boss compris)
 var ship_id := ""
 var ship_name := ""
 var hull := 0
@@ -26,9 +29,14 @@ var victory := false
 var ended := false
 
 
-static func create(id: String) -> RunState:
+static func create(id: String, difficulty_id := "normal") -> RunState:
 	var r := RunState.new()
 	var def: Dictionary = ShipData.PLAYER_SHIPS[id]
+	r.difficulty = difficulty_id if ShipData.DIFFICULTIES.has(difficulty_id) else "normal"
+	r.diff = ShipData.DIFFICULTIES[r.difficulty]
+	r.layers = int(r.diff["jumps"]) + 1
+	r.fuel += int(r.diff["fuel"])
+	r.scrap += int(r.diff["scrap"])
 	r.ship_id = id
 	r.ship_name = def["name"]
 	r.hull = def["hull"]
@@ -114,29 +122,37 @@ func jump_to(id: int) -> int:
 
 func generate_map() -> void:
 	nodes = []
-	var layers: Array = []
-	for layer in MAP_LAYERS:
+	var by_layer: Array = []
+	# Couches du milieu : la version longue en a 5 ; une run courte en garde 3, dont une boutique.
+	var middle: Array = [
+		func(): return ["combat", "evenement"],
+		func(): return _shuffle(["combat", "evenement", "halte"]),
+		func(): return _shuffle(["boutique", "evenement", "combat"]),
+		func(): return _shuffle(["combat", "evenement", ["combat", "halte"].pick_random()]),
+		func(): return _shuffle(["boutique", "combat"]),
+	]
+	if layers - 2 < middle.size():
+		middle = [middle[0], middle[2], middle[4]].slice(0, maxi(layers - 2, 1))
+	for layer in layers:
 		var types: Array
-		match layer:
-			0: types = ["depart"]
-			1: types = ["combat", "evenement"]
-			2: types = _shuffle(["combat", "evenement", "halte"])
-			3: types = _shuffle(["boutique", "evenement", "combat"])
-			4: types = _shuffle(["combat", "evenement", ["combat", "halte"].pick_random()])
-			5: types = _shuffle(["boutique", "combat"])
-			_: types = ["boss"]
+		if layer == 0:
+			types = ["depart"]
+		elif layer == layers - 1:
+			types = ["boss"]
+		else:
+			types = middle[mini(layer - 1, middle.size() - 1)].call()
 		var ids: Array = []
 		for i in types.size():
 			var y := 0.5 if types.size() == 1 else float(i) / (types.size() - 1)
-			var jitter := Vector2(randf_range(-0.2, 0.2), randf_range(-0.06, 0.06)) if layer not in [0, MAP_LAYERS - 1] else Vector2.ZERO
+			var jitter := Vector2(randf_range(-0.2, 0.2), randf_range(-0.06, 0.06)) if layer not in [0, layers - 1] else Vector2.ZERO
 			nodes.append({"id": nodes.size(), "layer": layer, "type": types[i], "next": [], "visited": layer == 0,
 				"pos": Vector2(layer + jitter.x, clampf(0.04 + y * 0.92 + jitter.y, 0.0, 1.0))})
 			ids.append(nodes.size() - 1)
-		layers.append(ids)
+		by_layer.append(ids)
 	# Liens sans croisement : chaque nœud vise une plage contiguë de la couche suivante.
-	for layer in MAP_LAYERS - 1:
-		var a: Array = layers[layer]
-		var b: Array = layers[layer + 1]
+	for layer in layers - 1:
+		var a: Array = by_layer[layer]
+		var b: Array = by_layer[layer + 1]
 		var main: Array = []
 		for i in a.size():
 			main.append(0 if a.size() == 1 else int(round(float(i) * (b.size() - 1) / (a.size() - 1))))

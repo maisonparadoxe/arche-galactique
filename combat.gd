@@ -76,8 +76,11 @@ func _setup_enemy(id: String) -> void:
 	var def: Dictionary = ShipData.ENEMIES[id]
 	var cell := 50.0 if def["layout"] == "boss" else 52.0
 	enemy_layout = ShipLayout.build(ShipData.ENEMY_LAYOUTS[def["layout"]], ENEMY_AREA, cell)
+	var diff: Dictionary = game.run.diff
+	var hull_e: int = maxi(3, int(round(float(def["hull"]) * float(diff.get("enemy_hull", 1.0)))))
 	enemy = {
-		"id": id, "def": def, "name": def["name"], "hull": def["hull"], "hull_max": def["hull"],
+		"id": id, "def": def, "name": def["name"], "hull": hull_e, "hull_max": hull_e,
+		"charge_mult": float(diff.get("enemy_charge", 1.0)),
 		"shields": def["shields"], "shield_t": 0.0, "repair_t": 0.0, "corrupt": def["corrupt"],
 		"sys": {
 			"boucliers": {"level": def["shields"], "damage": 0},
@@ -321,7 +324,8 @@ func _update_enemy(delta: float) -> void:
 		var w: Dictionary = enemy["weapons"][i]
 		var def: Dictionary = ShipData.WEAPONS[w["id"]]
 		if i < powered:
-			w["charge"] = minf(def["charge"], w["charge"] + delta)
+			# la difficulté ralentit (ou accélère) la charge des armes ennemies
+			w["charge"] = minf(def["charge"], w["charge"] + delta / float(enemy["charge_mult"]))
 			if w["charge"] >= def["charge"]:
 				w["ready_for"] += delta
 			else:
@@ -396,7 +400,7 @@ func _enemy_shot_hits(s: Dictionary) -> void:
 		sys[sname]["damage"] = mini(sys[sname]["level"], sys[sname]["damage"] + 1)
 	flashes.append({"rect": room["rect"], "col": Color(1, 0.3, 0.2), "life": 0.6})
 	_float(s["to"], "-%d" % s["dmg"], Art.DANGER)
-	var fire_chance := 0.4 if s["weapon"] == "spore" else 0.2
+	var fire_chance: float = (0.4 if s["weapon"] == "spore" else 0.2) * float(run.diff.get("fire", 1.0))
 	if randf() < fire_chance:
 		_start_fire(room)
 	for p: Player in game.players.values():
@@ -554,7 +558,7 @@ func _draw() -> void:
 	Hud.draw(self, run)
 	game.draw_small_qr(self, Vector2(1190, 22), 64)
 	var boss: bool = enemy["def"].get("boss", false)
-	Art.title(self, Vector2(40, 100), "Affrontement final" if boss else "Saut %d / %d" % [run.depth(), RunState.MAP_LAYERS - 1], 22, Color(Art.IVORY, 0.55))
+	Art.title(self, Vector2(40, 100), "Affrontement final" if boss else "Saut %d / %d" % [run.depth(), run.layers - 1], 22, Color(Art.IVORY, 0.55))
 	_draw_player_ship()
 	_draw_enemy_ship()
 	_draw_shots()

@@ -80,6 +80,8 @@ await a.tp(500, 618);
 await hold(a, A, 120);
 await waitScene(a, "choix");
 a.send({ t: "vote", id: "nautile" });
+await sleep(1800);
+a.send({ t: "vote", id: "normal" });
 d = await waitScene(a, "carte", 8000);
 check(d.crew.length === 5 && d.me === d.crew.find((c) => c.avatar).id, `Nautile : équipage de ${d.crew.length}, le joueur reprend son avatar`);
 const combat = d.choices.find((c) => c.type === "combat");

@@ -18,7 +18,15 @@ Académie (hub) → choix du vaisseau → carte du secteur ⇄ combat · événe
 ```
 
 1. **Académie galactique** : on rejoint, on crée son personnage, on s'entraîne aux épreuves. Pour partir, un joueur appuie sur **A** à la **table de commandement** (Pont central). Sur le PC, la touche **Entrée** fait la même chose.
-2. **Choix du vaisseau** : vote sur les téléphones entre trois vaisseaux.
+2. **Choix du vaisseau** : vote sur les téléphones entre trois vaisseaux, puis **vote de la difficulté** :
+
+   | Difficulté | Sauts avant le boss | Ennemis | Départ |
+   | --- | --- | --- | --- |
+   | Découverte | 3 | coque ×0,5, tirent ~40 % moins vite, 2 fois moins d'incendies | +2 carburant, +15 ferraille |
+   | Normal | 6 | tels que prévus | — |
+   | Difficile | 6 | coque ×1,3, tirent ~18 % plus vite, 40 % d'incendies en plus | — |
+
+   Les réglages sont dans `ShipData.DIFFICULTIES` (`ship_data.gd`). Le jeu propose par défaut la dernière difficulté choisie.
 3. **Carte du secteur** : 6 sauts jusqu'à l'Indicible. On vote chaque destination. Un saut coûte 1 carburant ; sans carburant, la coque perd 3 points.
 4. **Nœuds** : combat, événement (« Inconnu »), halte, boutique, et le boss au bout.
 5. **Bilan** : victoire ou défaite, colons sauvés, puis retour à l'Académie.

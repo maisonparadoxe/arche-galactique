@@ -103,6 +103,17 @@ const ENEMIES := {
 		"layout": "boss", "corrupt": true, "scrap": [0, 0], "boss": true},
 }
 
+## Niveaux de difficulté. Multiplicateurs appliqués aux ennemis et ressources de départ.
+const DIFFICULTIES := {
+	"decouverte": {"name": "Découverte", "desc": "Court et facile : 3 sauts, ennemis fragiles et lents",
+		"jumps": 3, "enemy_hull": 0.5, "enemy_charge": 1.6, "fire": 0.5, "fuel": 2, "scrap": 15},
+	"normal": {"name": "Normal", "desc": "6 sauts, l'expérience prévue",
+		"jumps": 6, "enemy_hull": 1.0, "enemy_charge": 1.0, "fire": 1.0, "fuel": 0, "scrap": 0},
+	"difficile": {"name": "Difficile", "desc": "6 sauts, ennemis robustes et rapides, plus d'incendies",
+		"jumps": 6, "enemy_hull": 1.3, "enemy_charge": 0.85, "fire": 1.4, "fuel": 0, "scrap": 0},
+}
+const DIFFICULTY_ORDER := ["decouverte", "normal", "difficile"]
+
 const SYSTEM_NAMES := {
 	"armes": "Armes", "boucliers": "Boucliers", "moteurs": "Moteurs", "pilotage": "Pilotage", "coeur": "Cœur",
 }
