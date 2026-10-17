@@ -28,6 +28,9 @@ var seated := false
 var carrying := false
 var working := false             # remis à faux à chaque image ; vrai si le membre libre travaille
 var medals := 0
+var downed := false              # à terre (abordage) : ne peut plus agir tant qu'on ne l'a pas relevé
+var revive_frac := 0.0           # progression de la relève, de 0 à 1
+var blink := 0.0                 # invulnérabilité : le personnage clignote
 
 
 func is_free() -> bool:
@@ -42,6 +45,9 @@ func radius() -> float:
 func reset_state() -> void:
 	seated = false
 	carrying = false
+	downed = false
+	revive_frac = 0.0
+	blink = 0.0
 	axis = Vector2.ZERO
 
 
@@ -67,12 +73,16 @@ func held(i: int) -> bool:
 func _process(_delta: float) -> void:
 	if axis.length() > 0.15:
 		facing = axis.normalized()
+	modulate.a = 0.4 if blink > 0.0 and int(Time.get_ticks_msec() / 70) % 2 == 0 else 1.0
 	queue_redraw()
 
 
 func _draw() -> void:
 	var r := radius()
 	var free := is_free()
+	if downed:
+		_draw_downed(r)
+		return
 	# ombre, et anneau à la couleur du joueur qui le contrôle
 	draw_set_transform(Vector2(0, r * 0.9), 0, Vector2(1, 0.35))
 	draw_circle(Vector2.ZERO, r * 1.05, Color(0, 0, 0, 0.35))
@@ -109,6 +119,23 @@ func _draw() -> void:
 		draw_string(font, Vector2(-80, r + 39), controller_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 12, controller_color)
 	elif info != "":
 		draw_string(font, Vector2(-80, r + 39), info, HORIZONTAL_ALIGNMENT_CENTER, 160, 11, Color(IVORY, 0.5))
+
+
+## À terre : grisé, avec une croix et l'arc de relève.
+func _draw_downed(r: float) -> void:
+	draw_set_transform(Vector2(0, r * 0.9), 0, Vector2(1, 0.35))
+	draw_circle(Vector2.ZERO, r * 1.05, Color(0, 0, 0, 0.35))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	draw_circle(Vector2.ZERO, r, Color(color.darkened(0.6), 0.85))
+	draw_arc(Vector2.ZERO, r, 0, TAU, 40, Color(GOLD, 0.4), 2.0)
+	var k := r * 0.45
+	draw_line(Vector2(-k, -k), Vector2(k, k), Color("#e8452e"), 3.5)
+	draw_line(Vector2(k, -k), Vector2(-k, k), Color("#e8452e"), 3.5)
+	if revive_frac > 0.0:
+		draw_arc(Vector2.ZERO, r + 9, -PI / 2, -PI / 2 + TAU * clampf(revive_frac, 0.0, 1.0), 40, Color("#9caf88"), 5.0)
+	var font := ThemeDB.fallback_font
+	draw_string(font, Vector2(-80, r + 24), player_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 15, Color(IVORY, 0.55))
+	draw_string(font, Vector2(-80, r + 39), "à terre", HORIZONTAL_ALIGNMENT_CENTER, 160, 11, Color("#e8452e"))
 
 
 ## Dessine un personnage : utilisable par n'importe quel CanvasItem.

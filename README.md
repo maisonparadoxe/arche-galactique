@@ -14,7 +14,7 @@ Au premier lancement, autorise Godot dans le pare-feu pour les réseaux privés.
 ## Déroulement d'une partie
 
 ```
-Académie (hub) → choix du vaisseau → carte du secteur ⇄ combat · événement · halte · boutique → boss → bilan → Académie
+Académie (hub) → choix du vaisseau → carte du secteur ⇄ combat · abordage · île · événement · halte · boutique → boss → bilan → Académie
 ```
 
 1. **Académie galactique** : on rejoint, on crée son personnage, on s'entraîne aux épreuves. Pour partir, un joueur appuie sur **A** à la **table de commandement** (Pont central). Sur le PC, la touche **Entrée** fait la même chose.
@@ -28,7 +28,7 @@ Académie (hub) → choix du vaisseau → carte du secteur ⇄ combat · événe
 
    Les réglages sont dans `ShipData.DIFFICULTIES` (`ship_data.gd`). Le jeu propose par défaut la dernière difficulté choisie.
 3. **Carte du secteur** : 6 sauts jusqu'à l'Indicible. On vote chaque destination. Un saut coûte 1 carburant ; sans carburant, la coque perd 3 points.
-4. **Nœuds** : combat, événement (« Inconnu »), halte, boutique, et le boss au bout.
+4. **Nœuds** : combat de vaisseaux, **navire marchand** et **île au trésor** (abordages à pied), événement (« Inconnu »), halte, boutique, et le boss au bout.
 5. **Bilan** : victoire ou défaite, colons sauvés, puis retour à l'Académie.
 
 ### L'équipage et le changement de personnage
@@ -75,6 +75,24 @@ Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux
 - **Armes** : chaque arme a besoin d'un niveau du système d'armes ; un système endommagé coupe des armes.
 - Viser une salle ennemie endommage son système : les **boucliers** pour ouvrir une brèche, les **armes** pour le faire taire, le **cœur** de l'Indicible pour doubler les dégâts.
 
+### L'abordage (navire marchand, île au trésor)
+
+Tout l'équipage descend du vaisseau et nettoie un niveau à pied, vu de dessus, salle après salle, façon Hotline Miami : **un coup tue**, les ennemis comme les joueurs, et chaque attaque ennemie est **annoncée** (zone rose, ligne de tir) pour qu'on puisse l'éviter.
+
+| Touche | Action |
+| --- | --- |
+| Joystick | Se déplacer |
+| **A** « Frapper » | Coup d'épée devant soi : tue tout ce qu'il touche et dévie les balles. Se tourne seul vers l'ennemi proche |
+| **B** « Tirer ●●● » | Pistolet, **visée automatique** (3 cartouches qui se rechargent). Les Automates visent dans un cône plus large |
+| **X** « Roulade » | Esquive : invulnérable un instant. Les Salamandrins la relancent plus vite |
+| **Y** | Changer de personnage, comme partout (utile quand on est à terre) |
+
+- **Rester ensemble.** Le niveau est plus large que l'écran. Personne ne peut sortir de l'image : celui qui court en avant attend au bord, et la caméra ne progresse que si le groupe reste uni. Quand quelqu'un traîne trop, son personnage est entouré d'or et l'écran affiche « Attendez … ! ». Au bout de 18 s (6 s pour un membre libre), le retardataire est ramené auprès du groupe.
+- **À terre.** Touché, on tombe. Il suffit qu'un équipier reste près de soi pour vous relever (3 s ; deux fois plus vite par un Humain, plus vite à plusieurs). Sans aide, on se relève au bout de 14 s auprès d'un équipier. Si tout l'équipage est à terre, c'est le **repli** : -3 coque, pas de butin.
+- **Membres libres.** Ils suivent un joueur, se défendent contre les ennemis éveillés et relèvent les blessés, un peu moins bien qu'un joueur. Ils ne chassent pas les ennemis endormis.
+- **Butin.** Coffres dans les salles (traversés = ouverts), gros coffre au fond, bonus du capitaine. Enchaîner des kills (×2, ×3…) fait grimper le score ; un enchaînement de 5 et un équipage sans chute donnent chacun +3 ferraille.
+- **Équilibrage.** Le nombre d'ennemis suit la taille de l'équipage et la difficulté ; leurs préavis s'allongent en Découverte. Niveaux, ennemis et coffres sont dans `ShipData.BOARDINGS` et `BOARDING_FOES` : ajouter une île ou un galion, c'est ajouter des salles à cet endroit.
+
 ### Événements, haltes, boutique
 
 - Les **événements** et **haltes** sont dans `data/events.json` : texte, choix, conséquences aléatoires pondérées (ferraille, carburant, coque, colons, améliorations, combat). On peut en ajouter sans toucher au code.
@@ -89,6 +107,7 @@ Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux
 | `academy.gd` | L'Académie (hub et épreuves) |
 | `ship_select.gd`, `sector_map.gd`, `event_scene.gd`, `shop.gd`, `results.gd` | Scènes de vote |
 | `combat.gd` | Le combat entre vaisseaux |
+| `boarding.gd` | L'abordage à pied : niveaux défilants, caméra solidaire, ennemis, relève |
 | `run_state.gd` | État d'une expédition et génération de la carte |
 | `ship_data.gd` | Vaisseaux, armes, ennemis : **tout l'équilibrage est ici** |
 | `ship_layout.gd` | Plans des vaisseaux : salles, portes, déplacements |
@@ -108,13 +127,15 @@ godot --path . -- --test                 # dans un premier terminal
 node tests/academie.mjs                   # les cinq épreuves de l'Académie
 node tests/expedition.mjs                 # une expédition gagnée, puis une perdue
 node tests/equipage.mjs                   # en solo : changement de personnage, équipage automatique
+node tests/abordage.mjs                   # trois téléphones à l'abordage : caméra solidaire, relève, coups, repli
 ```
 
 `--test` active des commandes réservées aux tests (téléportation, changement de scène, captures d'écran). `--speed=8` accélère le jeu pour `tests/equilibrage.mjs`, qui mesure des combats laissés en automatique total.
 
 ## Limites connues
 
-- Les membres libres ne se déplacent pas d'eux-mêmes : c'est à toi de les placer.
+- À l'Académie et en combat de vaisseaux, les membres libres ne se déplacent pas d'eux-mêmes : c'est à toi de les placer (à l'abordage, ils suivent le groupe).
+- Abordage : pas encore de portes verrouillées tant qu'une salle n'est pas nettoyée, ni de sons ; une seule île et un seul galion.
 - Pas encore de poste ingénieur (énergie, portes) ni de poste pilote actif.
 - Pas de méta-progression sur l'arche ni de mode narratif.
 - Sur iPhone, pas de plein écran dans Safari, pas de vibration, et le mode silencieux coupe les sons.

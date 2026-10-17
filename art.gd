@@ -15,6 +15,7 @@ const DANGER := Color("#e8452e")
 const CORRUPT := Color("#b04cff")     # violet acide de l'Indicible
 const CORRUPT2 := Color("#7dff6a")    # vert acide de l'Indicible
 const SHIELD := Color("#62c6e6")
+const NEON_PINK_ICON := Color("#ff4d9d")   # accent néon des abordages
 
 static var _title_font: Font
 

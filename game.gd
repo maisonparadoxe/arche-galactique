@@ -28,6 +28,7 @@ const SCENES := {
 	"choix": preload("res://ship_select.gd"),
 	"carte": preload("res://sector_map.gd"),
 	"combat": preload("res://combat.gd"),
+	"abordage": preload("res://boarding.gd"),
 	"evenement": preload("res://event_scene.gd"),
 	"boutique": preload("res://shop.gd"),
 	"bilan": preload("res://results.gd"),

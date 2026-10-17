@@ -119,6 +119,84 @@ const SYSTEM_NAMES := {
 }
 
 
+## Ennemis des abordages (un coup les tue, sauf le capitaine).
+const BOARDING_FOES := {
+	"marin": {"name": "Marin", "hp": 1, "speed": 105.0, "reach": 76.0, "windup": 0.5, "cooldown": 1.3, "radius": 15.0},
+	"fusilier": {"name": "Fusilier", "hp": 1, "speed": 70.0, "windup": 0.7, "cooldown": 2.4, "radius": 15.0, "bullet": 320.0},
+	"capitaine": {"name": "Capitaine", "hp": 4, "speed": 112.0, "reach": 92.0, "windup": 0.42, "cooldown": 1.0, "radius": 21.0,
+		"bullet": 300.0, "fan_every": 3.6},
+}
+
+## Niveaux d'abordage : un navire marchand et une île au trésor. Les salles sont en cases de 80 px.
+## Le niveau dépasse la largeur de l'écran : la caméra suit le groupe, mais seulement s'il reste uni.
+const BOARDINGS := {
+	"galion": {
+		"name": "Navire marchand", "tag": "Un galion lourdement chargé",
+		"start": "passerelle", "boss": "capitaine",
+		"palette": {"floor": Color("#3b2c22"), "alt": Color("#33261e"), "wall": Color("#6b4a30"), "back": Color("#120d12")},
+		"floors": {"capitaine": Color("#3d2433"), "tresor": Color("#3a3320"), "cale": Color("#2b2420")},
+		"layout": {
+			"rooms": [
+				{"id": "passerelle", "name": "Passerelle", "x": 0, "y": 1, "w": 4, "h": 5},
+				{"id": "coursive", "name": "Coursive", "x": 4, "y": 2, "w": 6, "h": 3},
+				{"id": "cabines", "name": "Cabines", "x": 4, "y": 0, "w": 6, "h": 2},
+				{"id": "cale", "name": "Cale", "x": 4, "y": 5, "w": 6, "h": 2},
+				{"id": "carre", "name": "Carré", "x": 10, "y": 1, "w": 6, "h": 5},
+				{"id": "capitaine", "name": "Quartiers du capitaine", "x": 16, "y": 1, "w": 5, "h": 5},
+				{"id": "tresor", "name": "Soute au trésor", "x": 21, "y": 2, "w": 4, "h": 3},
+			],
+			"doors": [["passerelle", "coursive"], ["coursive", "cabines"], ["coursive", "cale"], ["coursive", "carre"],
+				["carre", "capitaine"], ["capitaine", "tresor"]],
+		},
+		"spawns": [
+			{"room": "coursive", "type": "marin", "n": 2},
+			{"room": "cabines", "type": "fusilier", "n": 1},
+			{"room": "cale", "type": "marin", "n": 1}, {"room": "cale", "type": "fusilier", "n": 1},
+			{"room": "carre", "type": "marin", "n": 3}, {"room": "carre", "type": "fusilier", "n": 2},
+			{"room": "capitaine", "type": "capitaine", "n": 1}, {"room": "capitaine", "type": "fusilier", "n": 1},
+		],
+		"chests": [
+			{"room": "cabines", "at": [0.3, 0.6], "scrap": [4, 6]},
+			{"room": "cale", "at": [0.7, 0.5], "scrap": [4, 7]},
+			{"room": "capitaine", "at": [0.8, 0.25], "scrap": [6, 9]},
+			{"room": "tresor", "at": [0.5, 0.5], "scrap": [14, 20], "big": true},
+		],
+	},
+	"ile": {
+		"name": "Île au trésor", "tag": "Des ruines, des naufragés et un coffre",
+		"start": "plage", "boss": "temple",
+		"palette": {"floor": Color("#2f3a2b"), "alt": Color("#283325"), "wall": Color("#58634a"), "back": Color("#0d140f")},
+		"floors": {"plage": Color("#4a4332"), "temple": Color("#2c3138"), "crypte": Color("#252630"), "caveau": Color("#3a3320")},
+		"layout": {
+			"rooms": [
+				{"id": "plage", "name": "Plage", "x": 0, "y": 2, "w": 5, "h": 4},
+				{"id": "sentier", "name": "Sentier", "x": 5, "y": 3, "w": 4, "h": 2},
+				{"id": "clairiere", "name": "Clairière", "x": 9, "y": 1, "w": 6, "h": 5},
+				{"id": "ruines", "name": "Ruines", "x": 15, "y": 0, "w": 5, "h": 3},
+				{"id": "crypte", "name": "Crypte", "x": 15, "y": 4, "w": 5, "h": 3},
+				{"id": "temple", "name": "Temple", "x": 20, "y": 2, "w": 5, "h": 4},
+				{"id": "caveau", "name": "Caveau", "x": 25, "y": 3, "w": 3, "h": 2},
+			],
+			"doors": [["plage", "sentier"], ["sentier", "clairiere"], ["clairiere", "ruines"], ["clairiere", "crypte"],
+				["ruines", "temple"], ["crypte", "temple"], ["temple", "caveau"]],
+		},
+		"spawns": [
+			{"room": "sentier", "type": "marin", "n": 1},
+			{"room": "clairiere", "type": "marin", "n": 2}, {"room": "clairiere", "type": "fusilier", "n": 2},
+			{"room": "ruines", "type": "fusilier", "n": 2},
+			{"room": "crypte", "type": "marin", "n": 2}, {"room": "crypte", "type": "fusilier", "n": 1},
+			{"room": "temple", "type": "capitaine", "n": 1}, {"room": "temple", "type": "marin", "n": 2},
+		],
+		"chests": [
+			{"room": "clairiere", "at": [0.5, 0.5], "scrap": [4, 6]},
+			{"room": "ruines", "at": [0.7, 0.4], "scrap": [5, 8]},
+			{"room": "crypte", "at": [0.5, 0.6], "scrap": [5, 8]},
+			{"room": "caveau", "at": [0.5, 0.5], "scrap": [16, 24], "big": true},
+		],
+	},
+}
+
+
 ## Ennemi tiré au sort selon la profondeur dans le secteur (1 = début).
 static func enemy_for_depth(depth: int) -> String:
 	if depth <= 1:

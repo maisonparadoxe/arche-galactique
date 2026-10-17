@@ -36,6 +36,8 @@ func _describe(type: String) -> String:
 		"evenement": return "Un signal inconnu, à vos risques et périls"
 		"halte": return "Un lieu sûr pour souffler un peu"
 		"boutique": return "Un marchand : carburant, réparations, armes"
+		"abordage": return "Un navire marchand à aborder : butin, mais l'équipage se bat"
+		"ile": return "Une île au trésor : des ruines, des gardiens, un coffre"
 		"boss": return "L'Indicible barre la route de l'arche"
 	return ""
 
@@ -74,6 +76,10 @@ func _arrive() -> void:
 			game.goto("combat", {"enemy": ShipData.enemy_for_depth(int(n["layer"]))})
 		"boss":
 			game.goto("combat", {"enemy": "avatar"})
+		"abordage":
+			game.goto("abordage", {"layout": "galion"})
+		"ile":
+			game.goto("abordage", {"layout": "ile"})
 		"evenement", "halte":
 			game.goto("evenement", {"kind": n["type"]})
 		"boutique":
@@ -157,6 +163,13 @@ func _node_icon(type: String, c: Vector2) -> void:
 				draw_line(c, c + Vector2(cos(a), sin(a)) * 10, Art.SAGE, 3.0)
 		"boutique":
 			Art.icon(self, "ferraille", c)
+		"abordage":
+			draw_line(c + Vector2(-10, 8), c + Vector2(10, -10), Art.NEON_PINK_ICON, 3.0)
+			draw_line(c + Vector2(-4, -10), c + Vector2(10, 4), Art.NEON_PINK_ICON, 2.0)
+		"ile":
+			draw_arc(c + Vector2(0, 6), 11, PI, TAU, 14, Art.SAGE, 3.0)
+			draw_line(c + Vector2(0, 6), c + Vector2(0, -8), Art.SAGE, 3.0)
+			draw_circle(c + Vector2(0, -10), 4, Art.GOLD)
 		"boss":
 			Art.system_glyph(self, "coeur", c, 1.0)
 		"depart":

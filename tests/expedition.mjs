@@ -63,7 +63,7 @@ check(d.run.ship === "paikan" && d.run.fuel === 4, `expédition lancée sur le P
 check(a.last("vote_done") && a.last("vote_done").id === "normal", "le résultat du vote est annoncé sur le téléphone");
 
 // ---- Parcours de la carte jusqu'au boss
-let combatTested = false, shopTested = false, eventTested = false, guard = 0;
+let combatTested = false, shopTested = false, eventTested = false, boardTested = false, guard = 0;
 while (guard++ < 30) {
   d = await a.dbg();
   if (d.scene === "bilan") break;
@@ -72,7 +72,8 @@ while (guard++ < 30) {
     const ch = d.choices;
     // on préfère ce qui n'a pas encore été testé
     const pref = ch.find((c) => c.type === "combat" && !combatTested) || ch.find((c) => c.type === "boutique" && !shopTested)
-      || ch.find((c) => (c.type === "evenement" || c.type === "halte") && !eventTested) || ch[0];
+      || ch.find((c) => (c.type === "evenement" || c.type === "halte") && !eventTested)
+      || ch.find((c) => (c.type === "abordage" || c.type === "ile") && !boardTested) || ch[0];
     const fuelBefore = d.run.fuel;
     both(a, b, String(pref.id));
     d = await waitNotScene(a, "carte", 8000);
@@ -141,6 +142,13 @@ while (guard++ < 30) {
     d = await a.dbg();
     check(d.state === "won", `victoire contre ${d.enemy}`);
     await waitNotScene(a, "combat", 8000);
+    continue;
+  }
+  if (d.scene === "abordage") {
+    boardTested = true;
+    await a.cmd({ cmd: "kill_all" });
+    check(true, `abordage (${d.layout_id}) traversé : ${d.foes} ennemis, ${d.chests} coffres`);
+    await waitNotScene(a, "abordage", 10000);
     continue;
   }
   if (d.scene === "evenement") {

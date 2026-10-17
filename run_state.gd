@@ -127,8 +127,8 @@ func generate_map() -> void:
 	var middle: Array = [
 		func(): return ["combat", "evenement"],
 		func(): return _shuffle(["combat", "evenement", "halte"]),
-		func(): return _shuffle(["boutique", "evenement", "combat"]),
-		func(): return _shuffle(["combat", "evenement", ["combat", "halte"].pick_random()]),
+		func(): return _shuffle(["boutique", "abordage", "combat"]),
+		func(): return _shuffle(["combat", "ile", ["evenement", "halte"].pick_random()]),
 		func(): return _shuffle(["boutique", "combat"]),
 	]
 	if layers - 2 < middle.size():
