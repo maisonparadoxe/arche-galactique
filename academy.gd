@@ -159,6 +159,7 @@ func _award(mission: String, who: Array) -> void:
 		var person: Dictionary = game.people[p.peer_id]
 		person["medals"] += 1
 		game.net.send(p.peer_id, {"t": "medal", "text": missions[mission]["label"], "medals": person["medals"]})
+		game.sfx.play("gros_coffre", 1.0, -3.0)
 
 
 # ---------------------------------------------------------------- boucle

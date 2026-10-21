@@ -265,6 +265,7 @@ func _launch_player_shot(i: int, target: Vector2, room: Dictionary) -> void:
 	var def: Dictionary = ShipData.WEAPONS[w["id"]]
 	w["charge"] = 0.0
 	w["ready_for"] = 0.0
+	game.sfx.play("tir", 0.55, -3.0)
 	shots.append({"owner": "player", "from": weapons_console + Vector2(16, -10 + i * 10), "to": target, "t0": t,
 		"dur": 0.7, "dmg": def["dmg"], "pierce": def.get("pierce", false), "room": room.get("id", ""), "weapon": w["id"]})
 
@@ -384,6 +385,7 @@ func _player_shot_hits(s: Dictionary) -> void:
 
 func _enemy_shot_hits(s: Dictionary) -> void:
 	var run: RunState = game.run
+	game.sfx.play("touche", 0.7)
 	if randf() < player_evasion():
 		_float(s["to"], "Esquivé !", Art.SAGE)
 		return
@@ -498,6 +500,7 @@ func _float(pos: Vector2, text: String, col: Color) -> void:
 func _end(won: bool) -> void:
 	var run: RunState = game.run
 	state = "won" if won else "lost"
+	game.sfx.play("victoire" if won else "defaite")
 	end_at = t + END_DELAY
 	for p: Player in game.players.values():
 		if p.seated:

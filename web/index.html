@@ -408,6 +408,18 @@
     } catch {}
   }
   function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch {} }
+  // Petits sons des événements de l'abordage (en plus de ceux de la TV)
+  function playSfx(k) {
+    if (k === "tombe") { beep(330, 120); beep(220, 160, 0.1); beep(140, 260, 0.22); vibrate([60, 40, 90]); }
+    else if (k === "releve") { beep(523, 70); beep(659, 70, 0.07); beep(784, 120, 0.14); vibrate(30); }
+    else if (k === "coffre") { beep(1318, 70); beep(1760, 110, 0.07); }
+  }
+  // Retour immédiat quand on appuie sur une touche mise en avant (sans attendre le réseau)
+  function pressSound(label) {
+    if (label === "Frapper") { beep(240, 70); vibrate(12); }
+    else if (/^Tirer/.test(label) && label.includes("●")) { beep(980, 40); beep(300, 70, 0.03); vibrate(10); }
+    else if (label === "Roulade") { beep(380, 80); beep(540, 70, 0.05); }
+  }
   function buzz() {
     beep(); vibrate(30);
     const f = $("#flash"); f.style.opacity = 0.16; setTimeout(() => (f.style.opacity = 0), 60);
@@ -444,6 +456,7 @@
           break;
         }
         case "buzz": buzz(); break;
+        case "sfx": playSfx(m.k); break;
         case "toast": toast(m.text); beep(440, 80); break;
         case "medal":
           toast(`Médaille : ${m.text}`, true);
@@ -511,6 +524,7 @@
       btnByPointer.set(e.pointerId, btn);
       state.b[+btn.dataset.i] = true; btn.classList.add("down");
       unlockAudio();
+      if (btn.classList.contains("hot")) pressSound(btn.querySelector("span").textContent);
       return;
     }
     if (stick.id === null && e.target.closest(".stick-zone")) {

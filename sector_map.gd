@@ -38,6 +38,7 @@ func _describe(type: String) -> String:
 		"boutique": return "Un marchand : carburant, réparations, armes"
 		"abordage": return "Un navire marchand à aborder : butin, mais l'équipage se bat"
 		"ile": return "Une île au trésor : des ruines, des gardiens, un coffre"
+		"epave": return "Une épave que l'Indicible a fait sienne : dangereux, mais un reliquaire au fond"
 		"boss": return "L'Indicible barre la route de l'arche"
 	return ""
 
@@ -77,9 +78,11 @@ func _arrive() -> void:
 		"boss":
 			game.goto("combat", {"enemy": "avatar"})
 		"abordage":
-			game.goto("abordage", {"layout": "galion"})
+			game.goto("abordage", {"layout": ["galion", "caravelle"].pick_random()})
 		"ile":
 			game.goto("abordage", {"layout": "ile"})
+		"epave":
+			game.goto("abordage", {"layout": "epave"})
 		"evenement", "halte":
 			game.goto("evenement", {"kind": n["type"]})
 		"boutique":
@@ -166,6 +169,10 @@ func _node_icon(type: String, c: Vector2) -> void:
 		"abordage":
 			draw_line(c + Vector2(-10, 8), c + Vector2(10, -10), Art.NEON_PINK_ICON, 3.0)
 			draw_line(c + Vector2(-4, -10), c + Vector2(10, 4), Art.NEON_PINK_ICON, 2.0)
+		"epave":
+			draw_arc(c + Vector2(0, 2), 10, 0.4, PI - 0.4, 12, Art.CORRUPT2, 3.0)
+			draw_line(c + Vector2(-8, 4), c + Vector2(8, -6), Art.CORRUPT, 3.0)
+			draw_line(c + Vector2(8, 4), c + Vector2(-8, -6), Art.CORRUPT, 3.0)
 		"ile":
 			draw_arc(c + Vector2(0, 6), 11, PI, TAU, 14, Art.SAGE, 3.0)
 			draw_line(c + Vector2(0, 6), c + Vector2(0, -8), Art.SAGE, 3.0)

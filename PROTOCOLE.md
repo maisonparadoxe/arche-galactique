@@ -29,6 +29,7 @@ Messages JSON texte sur WebSocket (port 9080). Le champ `t` donne le type. La pa
 | `toast` | `text` | Court message en bas de l'écran |
 | `medal` | `text`, `medals` | Épreuve réussie à l'Académie |
 | `buzz` | — | Bip et vibration courte |
+| `sfx` | `k` : `tombe`, `releve` ou `coffre` | Petit son d'événement de l'abordage, joué sur ce téléphone seulement |
 | `pong` | `ts` | Réponse au `ping` |
 | `full` | — | Vaisseau complet (8 joueurs) |
 

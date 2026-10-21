@@ -90,6 +90,8 @@ Tout l'équipage descend du vaisseau et nettoie un niveau à pied, vu de dessus,
 - **Rester ensemble.** Le niveau est plus large que l'écran. Personne ne peut sortir de l'image : celui qui court en avant attend au bord, et la caméra ne progresse que si le groupe reste uni. Quand quelqu'un traîne trop, son personnage est entouré d'or et l'écran affiche « Attendez … ! ». Au bout de 18 s (6 s pour un membre libre), le retardataire est ramené auprès du groupe.
 - **À terre.** Touché, on tombe. Il suffit qu'un équipier reste près de soi pour vous relever (3 s ; deux fois plus vite par un Humain, plus vite à plusieurs). Sans aide, on se relève au bout de 14 s auprès d'un équipier. Si tout l'équipage est à terre, c'est le **repli** : -3 coque, pas de butin.
 - **Membres libres.** Ils suivent un joueur, se défendent contre les ennemis éveillés et relèvent les blessés, un peu moins bien qu'un joueur. Ils ne chassent pas les ennemis endormis.
+- **Portes verrouillées.** Une porte reste fermée tant que la salle qui la précède (côté départ) contient des ennemis, même endormis. On peut toujours revenir en arrière. Les verrous sont roses, avec un compte des ennemis restants.
+- **Niveaux.** Navire marchand (galion), caravelle de commerce, île au trésor, et **épave corrompue** (ombres rapides, sporeurs qui tirent des spores, gardien du Nid). L'épave se trouve dans la dernière partie du secteur.
 - **Butin.** Coffres dans les salles (traversés = ouverts), gros coffre au fond, bonus du capitaine. Enchaîner des kills (×2, ×3…) fait grimper le score ; un enchaînement de 5 et un équipage sans chute donnent chacun +3 ferraille.
 - **Équilibrage.** Le nombre d'ennemis suit la taille de l'équipage et la difficulté ; leurs préavis s'allongent en Découverte. Niveaux, ennemis et coffres sont dans `ShipData.BOARDINGS` et `BOARDING_FOES` : ajouter une île ou un galion, c'est ajouter des salles à cet endroit.
 
@@ -132,10 +134,14 @@ node tests/abordage.mjs                   # trois téléphones à l'abordage : c
 
 `--test` active des commandes réservées aux tests (téléportation, changement de scène, captures d'écran). `--speed=8` accélère le jeu pour `tests/equilibrage.mjs`, qui mesure des combats laissés en automatique total.
 
+### Sons
+
+Tous les sons sont **générés par le jeu** (aucun fichier audio) : coups, tirs, relève, coffres, portes, fanfares, et deux musiques. Une musique calme accompagne la gestion ; à l'abordage, une musique à couches (basse, batterie, arpège) s'allume quand les ennemis s'éveillent et qu'on enchaîne les victimes. La touche **M** coupe ou rétablit le son du PC. Les téléphones jouent leurs propres petits sons (appui sur une touche, chute, relève, coffre).
+
 ## Limites connues
 
 - À l'Académie et en combat de vaisseaux, les membres libres ne se déplacent pas d'eux-mêmes : c'est à toi de les placer (à l'abordage, ils suivent le groupe).
-- Abordage : pas encore de portes verrouillées tant qu'une salle n'est pas nettoyée, ni de sons ; une seule île et un seul galion.
+- Abordage : quatre niveaux seulement (galion, caravelle, île, épave) ; les sons n'ont été vérifiés que sur le papier (je n'ai pas d'oreilles), à régler à l'usage.
 - Pas encore de poste ingénieur (énergie, portes) ni de poste pilote actif.
 - Pas de méta-progression sur l'arche ni de mode narratif.
 - Sur iPhone, pas de plein écran dans Safari, pas de vibration, et le mode silencieux coupe les sons.

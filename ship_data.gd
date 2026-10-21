@@ -119,12 +119,19 @@ const SYSTEM_NAMES := {
 }
 
 
-## Ennemis des abordages (un coup les tue, sauf le capitaine).
+## Ennemis des abordages (un coup les tue, sauf les chefs).
+## ranged : tire de loin ; boss : chef de niveau ; hat : tricorne ; wisp : volutes de l'Indicible.
 const BOARDING_FOES := {
-	"marin": {"name": "Marin", "hp": 1, "speed": 105.0, "reach": 76.0, "windup": 0.5, "cooldown": 1.3, "radius": 15.0},
-	"fusilier": {"name": "Fusilier", "hp": 1, "speed": 70.0, "windup": 0.7, "cooldown": 2.4, "radius": 15.0, "bullet": 320.0},
-	"capitaine": {"name": "Capitaine", "hp": 4, "speed": 112.0, "reach": 92.0, "windup": 0.42, "cooldown": 1.0, "radius": 21.0,
-		"bullet": 300.0, "fan_every": 3.6},
+	"marin": {"name": "Marin", "hp": 1, "speed": 105.0, "reach": 76.0, "windup": 0.5, "cooldown": 1.3, "radius": 15.0, "coat": Color("#a8483a"), "hat": true},
+	"fusilier": {"name": "Fusilier", "hp": 1, "speed": 70.0, "windup": 0.7, "cooldown": 2.4, "radius": 15.0, "bullet": 320.0, "ranged": true,
+		"coat": Color("#4d7a80"), "hat": true},
+	"capitaine": {"name": "Capitaine", "hp": 4, "speed": 112.0, "reach": 92.0, "windup": 0.42, "cooldown": 1.0, "radius": 21.0, "bullet": 300.0,
+		"fan_every": 3.6, "boss": true, "coat": Color("#7d3a8f"), "hat": true},
+	"ombre": {"name": "Ombre", "hp": 1, "speed": 150.0, "reach": 64.0, "windup": 0.38, "cooldown": 1.1, "radius": 14.0, "coat": Color("#6d3cb0"), "wisp": true},
+	"sporeur": {"name": "Sporeur", "hp": 1, "speed": 55.0, "windup": 0.85, "cooldown": 2.8, "radius": 16.0, "bullet": 230.0, "ranged": true,
+		"coat": Color("#4f8a3c"), "wisp": true},
+	"gardien": {"name": "Gardien", "hp": 5, "speed": 100.0, "reach": 104.0, "windup": 0.45, "cooldown": 1.0, "radius": 27.0, "bullet": 260.0,
+		"fan_every": 3.2, "fan": [-0.5, -0.25, 0.0, 0.25, 0.5], "boss": true, "coat": Color("#5b2a8a"), "wisp": true},
 }
 
 ## Niveaux d'abordage : un navire marchand et une île au trésor. Les salles sont en cases de 80 px.
@@ -192,6 +199,64 @@ const BOARDINGS := {
 			{"room": "ruines", "at": [0.7, 0.4], "scrap": [5, 8]},
 			{"room": "crypte", "at": [0.5, 0.6], "scrap": [5, 8]},
 			{"room": "caveau", "at": [0.5, 0.5], "scrap": [16, 24], "big": true},
+		],
+	},
+	"caravelle": {
+		"name": "Caravelle de commerce", "tag": "Petite, rapide, bien gardée",
+		"start": "pont",
+		"palette": {"floor": Color("#3a2e24"), "alt": Color("#31271f"), "wall": Color("#6e5236"), "back": Color("#120d12")},
+		"floors": {"cabine": Color("#3a2735"), "cambuse": Color("#2c2620")},
+		"layout": {
+			"rooms": [
+				{"id": "pont", "name": "Pont", "x": 0, "y": 1, "w": 4, "h": 4},
+				{"id": "batterie", "name": "Batterie", "x": 4, "y": 1, "w": 5, "h": 4},
+				{"id": "cambuse", "name": "Cambuse", "x": 4, "y": 5, "w": 5, "h": 2},
+				{"id": "soute", "name": "Soute", "x": 9, "y": 1, "w": 6, "h": 4},
+				{"id": "cabine", "name": "Cabine du capitaine", "x": 15, "y": 2, "w": 5, "h": 3},
+			],
+			"doors": [["pont", "batterie"], ["batterie", "cambuse"], ["batterie", "soute"], ["soute", "cabine"]],
+		},
+		"spawns": [
+			{"room": "batterie", "type": "marin", "n": 2}, {"room": "batterie", "type": "fusilier", "n": 1},
+			{"room": "cambuse", "type": "fusilier", "n": 1},
+			{"room": "soute", "type": "marin", "n": 3}, {"room": "soute", "type": "fusilier", "n": 1},
+			{"room": "cabine", "type": "capitaine", "n": 1},
+		],
+		"chests": [
+			{"room": "cambuse", "at": [0.5, 0.5], "scrap": [4, 7]},
+			{"room": "soute", "at": [0.8, 0.3], "scrap": [5, 8]},
+			{"room": "cabine", "at": [0.7, 0.5], "scrap": [12, 18], "big": true},
+		],
+	},
+	"epave": {
+		"name": "Épave corrompue", "tag": "L'Indicible l'a faite sienne",
+		"start": "sas", "corrupt": true,
+		"palette": {"floor": Color("#241a2e"), "alt": Color("#1e1527"), "wall": Color("#5d4378"), "back": Color("#0a0710")},
+		"floors": {"serres": Color("#1d2a1e"), "nid": Color("#2e1840"), "reliquaire": Color("#33301c")},
+		"layout": {
+			"rooms": [
+				{"id": "sas", "name": "Sas", "x": 0, "y": 2, "w": 4, "h": 4},
+				{"id": "couloir", "name": "Couloir", "x": 4, "y": 3, "w": 5, "h": 2},
+				{"id": "machines", "name": "Salle des machines", "x": 9, "y": 1, "w": 6, "h": 5},
+				{"id": "cale", "name": "Cale noyée", "x": 15, "y": 0, "w": 5, "h": 3},
+				{"id": "serres", "name": "Serres", "x": 15, "y": 4, "w": 5, "h": 3},
+				{"id": "nid", "name": "Le Nid", "x": 20, "y": 2, "w": 5, "h": 4},
+				{"id": "reliquaire", "name": "Reliquaire", "x": 25, "y": 3, "w": 3, "h": 2},
+			],
+			"doors": [["sas", "couloir"], ["couloir", "machines"], ["machines", "cale"], ["machines", "serres"],
+				["cale", "nid"], ["serres", "nid"], ["nid", "reliquaire"]],
+		},
+		"spawns": [
+			{"room": "couloir", "type": "ombre", "n": 2},
+			{"room": "machines", "type": "ombre", "n": 2}, {"room": "machines", "type": "sporeur", "n": 2},
+			{"room": "cale", "type": "sporeur", "n": 2}, {"room": "serres", "type": "ombre", "n": 3},
+			{"room": "nid", "type": "gardien", "n": 1}, {"room": "nid", "type": "ombre", "n": 2},
+		],
+		"chests": [
+			{"room": "machines", "at": [0.5, 0.5], "scrap": [5, 8]},
+			{"room": "cale", "at": [0.7, 0.4], "scrap": [6, 9]},
+			{"room": "serres", "at": [0.4, 0.6], "scrap": [6, 9]},
+			{"room": "reliquaire", "at": [0.5, 0.5], "scrap": [20, 28], "big": true},
 		],
 	},
 }

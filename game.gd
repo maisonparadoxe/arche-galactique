@@ -23,6 +23,8 @@ const ACADEMY_RECRUITS := 3   # recrues présentes à l'Académie, en plus des a
 const MAX_PLAYERS := 8
 const INPUT_STALE_MS := 500
 
+const SfxScript := preload("res://sfx.gd")
+
 const SCENES := {
 	"academie": preload("res://academy.gd"),
 	"choix": preload("res://ship_select.gd"),
@@ -35,6 +37,7 @@ const SCENES := {
 }
 
 var net: NetServer
+var sfx                               # sons et musique (sfx.gd)
 var players: Dictionary = {}           # peer_id -> membre d'équipage contrôlé par ce téléphone
 var people: Dictionary = {}            # peer_id -> {name, color, slot, token, medals, choosing}
 var crew: Array = []                   # tous les membres d'équipage présents (contrôlés ou libres)
@@ -62,6 +65,8 @@ func _ready() -> void:
 	rng.seed = 7
 	for i in 140:
 		stars.append([Vector2(rng.randf() * 1280, rng.randf() * 720), rng.randf_range(0.6, 1.8), rng.randf()])
+	sfx = SfxScript.new()
+	add_child(sfx)
 	net = NetServer.new()
 	add_child(net)
 	net.player_joined.connect(_on_joined)
@@ -98,6 +103,7 @@ func _switch(name: String, args: Dictionary) -> void:
 	if name == "academie":
 		rebuild_crew(0, ACADEMY_RECRUITS)
 	scene_name = name
+	sfx.set_music("action" if name == "abordage" else "calme")
 	scene = SCENES[name].new()
 	scene.game = self
 	add_child(scene)
@@ -441,6 +447,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_M:
+		toast_all("Son coupé sur le PC" if sfx.toggle_mute() else "Son rétabli sur le PC")
 	# Raccourci clavier sur le PC : Entrée lance une expédition depuis l'Académie.
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ENTER and scene_name == "academie":
 		goto("choix")

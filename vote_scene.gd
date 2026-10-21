@@ -121,6 +121,7 @@ func _resolve() -> void:
 	var label: String = option(chosen).get("label", "")
 	for pl: Player in game.players.values():
 		game.net.send(pl.peer_id, {"t": "vote_done", "id": chosen, "label": label, "tie": best.size() > 1})
+	game.sfx.play("repartie", 1.0, -3.0)
 	on_vote_result(chosen)
 
 

@@ -34,6 +34,9 @@ const REVIVE_RANGE := 58.0
 const RESPAWN_AFTER := 14.0
 const RESCUE_AFTER := 18.0         # un joueur qui retient le groupe trop longtemps est ramené
 
+const BANNERS := {"galion": "À L'ABORDAGE !", "caravelle": "À L'ABORDAGE !", "ile": "TERRE EN VUE !", "epave": "ELLE VOUS ATTEND…"}
+const VICTORIES := {"galion": "Butin récupéré !", "caravelle": "Butin récupéré !", "ile": "Trésor trouvé !", "epave": "Reliquaire arraché !"}
+
 const NEON_PINK := Color("#ff4d9d")
 const NEON_CYAN := Color("#4dffe8")
 
@@ -65,6 +68,13 @@ var blocked_t := 0.0
 var laggard: Player = null
 var crowd := 1.0
 var frozen := false                   # tests : les ennemis ne bougent plus
+var depth: Dictionary = {}            # salle -> nombre de portes depuis le départ
+var locked: Array = []                # portes fermées : on ne les passe qu'une fois la salle d'avant nettoyée
+var locks_off := false                # tests : toutes les portes sont ouvertes
+var lock_note_t := -9.0
+var alert_t := -9.0
+var last_locks := 0
+var lock_hint := ""
 var enemy_charge := 1.0
 var result_title := ""
 var result_lines: Array = []
@@ -85,6 +95,14 @@ func enter(args: Dictionary) -> void:
 		maxx = maxi(maxx, int(r["x"]) + int(r["w"]))
 		maxy = maxi(maxy, int(r["y"]) + int(r["h"]))
 	layout = ShipLayout.build(def["layout"], Rect2(Vector2(0, TOP), Vector2(maxx, maxy) * CELL), CELL)
+	depth = {str(def["start"]): 0}
+	var queue: Array = [str(def["start"])]
+	while not queue.is_empty():
+		var cur: String = queue.pop_front()
+		for n in layout.neighbors(cur):
+			if not depth.has(n):
+				depth[n] = int(depth[cur]) + 1
+				queue.append(n)
 	world = Rect2(Vector2.ZERO, Vector2(maxf(VIEW.x, layout.bounds.end.x + 60.0), maxf(VIEW.y, layout.bounds.end.y + 50.0)))
 	var diff: Dictionary = game.run.diff
 	var hull_k := float(diff.get("enemy_hull", 1.0))
@@ -93,7 +111,7 @@ func enter(args: Dictionary) -> void:
 	for sp in def["spawns"]:
 		var room := layout.room(sp["room"])
 		var n: int = int(sp["n"])
-		if sp["type"] != "capitaine":
+		if not bool(ShipData.BOARDING_FOES[sp["type"]].get("boss", false)):
 			n = maxi(1, int(round(float(n) * crowd)))
 		for i in n:
 			_spawn_foe(str(sp["type"]), layout.random_point(room, 58.0), hull_k)
@@ -118,7 +136,7 @@ func exit() -> void:
 func _spawn_foe(type: String, pos: Vector2, hull_k: float) -> void:
 	var fd: Dictionary = ShipData.BOARDING_FOES[type]
 	var hp: int = int(fd["hp"])
-	if type == "capitaine":
+	if bool(fd.get("boss", false)):
 		hp = maxi(2, int(round(float(hp) * hull_k)))
 	foes.append({"type": type, "pos": pos, "hp": hp, "hp_max": hp, "radius": float(fd["radius"]), "face": Vector2.LEFT,
 		"state": "move", "timer": 0.0, "dir": Vector2.LEFT, "cool": randf_range(0.2, 1.2), "aware": false, "react": 0.0,
@@ -202,6 +220,7 @@ func update(delta: float) -> void:
 	if state == "intro" and t >= INTRO:
 		state = "fight"
 	if state == "intro" or state == "fight":
+		_update_locks()
 		for p: Player in game.crew:
 			_update_member(p, delta)
 		_revive(delta)
@@ -214,6 +233,11 @@ func update(delta: float) -> void:
 		_check_end()
 	_update_camera(delta)
 	_update_effects(delta)
+	var awake := 0
+	for f in foes:
+		if bool(f["aware"]):
+			awake += 1
+	game.sfx.set_action(clampf(float(awake) / 4.0, 0.0, 1.0) if state == "fight" else 0.0, combo)
 	if end_at > 0.0 and t >= end_at:
 		end_at = -1.0
 		game.node_done()
@@ -247,6 +271,7 @@ func _control(p: Player, s: Dictionary, delta: float) -> void:
 			s["roll_cd"] = 0.55 if p.species == "salamandrin" else ROLL_COOLDOWN
 			s["inv"] = maxf(float(s["inv"]), ROLL_TIME + 0.1)
 			p.facing = dir
+			game.sfx.play("roulade")
 	if p.pressed(0) and float(s["swing_cd"]) <= 0.0:
 		_swing(p, s, 1.0)
 	if p.held(1) and float(s["shoot_cd"]) <= 0.0 and float(s["ammo"]) >= 1.0:
@@ -254,7 +279,60 @@ func _control(p: Player, s: Dictionary, delta: float) -> void:
 
 
 func _move(p: Player, step: Vector2) -> void:
-	p.position = layout.move(p.position, step, p.radius())
+	var r := p.radius()
+	var np := layout.move(p.position, step, r)
+	if _blocked_by_lock(p.position, np, r):
+		np = layout.move(p.position, Vector2(step.x, 0), r)
+		if _blocked_by_lock(p.position, np, r):
+			np = p.position
+		var np2 := layout.move(np, Vector2(0, step.y), r)
+		if not _blocked_by_lock(np, np2, r):
+			np = np2
+		if lock_note_t < t - 1.6 and not p.is_free():
+			lock_note_t = t
+			game.sfx.play("verrou")
+			floaters.append({"pos": p.position + Vector2(0, -34), "text": "Verrouillé", "col": NEON_PINK, "life": 1.2})
+			game.net.send(p.peer_id, {"t": "buzz"})
+	p.position = np
+
+
+## Une porte se verrouille tant que la salle qui la précède (du côté du départ) contient des ennemis.
+func _update_locks() -> void:
+	locked.clear()
+	lock_hint = ""
+	if locks_off:
+		return
+	var counts := {}
+	for f in foes:
+		var id: String = layout.room_at(f["pos"]).get("id", "")
+		counts[id] = int(counts.get(id, 0)) + 1
+	for d in layout.doors:
+		var a: String = d["a"]
+		var b: String = d["b"]
+		var gate := a if int(depth.get(a, 0)) <= int(depth.get(b, 0)) else b
+		if int(counts.get(gate, 0)) > 0:
+			locked.append({"door": d, "gate": gate, "left": int(counts[gate])})
+	if locked.size() < last_locks and state != "intro":
+		game.sfx.play("ouvre")
+		game.toast_all("Une porte s'ouvre !")
+	last_locks = locked.size()
+
+
+func _lock_band(d: Dictionary, r: float) -> Rect2:
+	var c: Vector2 = d["pos"]
+	var half := ShipLayout.WALL_T / 2.0 + 2.0 + r * 0.6
+	var len_half := layout.door_w / 2.0
+	return Rect2(c - Vector2(half, len_half), Vector2(half * 2.0, len_half * 2.0)) if bool(d["vertical"]) \
+		else Rect2(c - Vector2(len_half, half), Vector2(len_half * 2.0, half * 2.0))
+
+
+## Vrai si ce déplacement ferait entrer dans une porte verrouillée depuis la salle qui la précède.
+func _blocked_by_lock(from: Vector2, to: Vector2, r: float) -> bool:
+	for l in locked:
+		var band := _lock_band(l["door"], r)
+		if band.has_point(to) and not band.has_point(from) and (layout.room(l["gate"])["rect"] as Rect2).grow(14.0).has_point(from):
+			return true
+	return false
 
 
 ## Personne ne sort de l'image : le plus rapide attend les autres au bord de l'écran.
@@ -280,6 +358,7 @@ func _swing(p: Player, s: Dictionary, cd_mult: float) -> void:
 	if not near.is_empty():
 		p.facing = ((near["pos"] as Vector2) - p.position).normalized()   # petite aide : on se tourne vers l'ennemi
 	s["swing_cd"] = SWING_COOLDOWN * cd_mult
+	game.sfx.play("coup", randf_range(0.92, 1.12))
 	var dir: Vector2 = p.facing
 	slashes.append({"pos": p.position, "dir": dir, "life": 0.2, "reach": reach, "col": p.color})
 	for f in foes.duplicate():
@@ -318,6 +397,7 @@ func _shoot(p: Player, s: Dictionary, cd_mult: float) -> void:
 		p.facing = dir
 	s["ammo"] = float(s["ammo"]) - 1.0
 	s["shoot_cd"] = SHOOT_COOLDOWN * cd_mult
+	game.sfx.play("tir", randf_range(0.95, 1.08), -2.0)
 	bullets.append({"pos": p.position + dir * (p.radius() + 6.0), "vel": dir * BULLET_SPEED, "friendly": true, "life": 1.1, "owner": p.crew_id})
 	_burst(p.position + dir * (p.radius() + 8.0), 3, [NEON_CYAN, Art.IVORY], 90.0)
 
@@ -326,6 +406,7 @@ func _damage_foe(f: Dictionary, by: Player) -> void:
 	f["hp"] = int(f["hp"]) - 1
 	f["flash"] = 0.12
 	if int(f["hp"]) > 0:
+		game.sfx.play("touche")
 		_burst(f["pos"], 5, [Art.IVORY, NEON_PINK], 130.0)
 		shake = maxf(shake, 3.0)
 		return
@@ -336,6 +417,9 @@ func _damage_foe(f: Dictionary, by: Player) -> void:
 	best_combo = maxi(best_combo, combo)
 	var pts := 100 * combo
 	score += pts
+	game.sfx.play("mort", randf_range(0.9, 1.1))
+	if combo >= 2:
+		game.sfx.play("enchainement", pow(2.0, float(mini(combo - 2, 8)) / 6.0), -3.0)
 	_burst(f["pos"], 14, [Art.GOLD, Art.IVORY, NEON_PINK, NEON_CYAN], 220.0)
 	stains.append({"pos": f["pos"], "r": randf_range(10.0, 18.0), "col": Color(NEON_PINK, 0.16)})
 	if stains.size() > 70:
@@ -343,9 +427,10 @@ func _damage_foe(f: Dictionary, by: Player) -> void:
 	floaters.append({"pos": (f["pos"] as Vector2) + Vector2(0, -26), "text": "+%d" % pts if combo < 2 else "×%d  +%d" % [combo, pts],
 		"col": NEON_CYAN if combo >= 3 else Art.GOLD, "life": 1.1})
 	shake = maxf(shake, 5.0)
-	if f["type"] == "capitaine":
+	var fdef: Dictionary = ShipData.BOARDING_FOES[f["type"]]
+	if bool(fdef.get("boss", false)):
 		chests.append({"pos": f["pos"], "scrap": randi_range(8, 12), "open": false, "big": false})
-		game.toast_all("Le capitaine est à terre !")
+		game.toast_all("%s est à terre !" % ("Le " + str(fdef["name"]).to_lower()))
 	if by != null and not by.is_free():
 		game.net.send(by.peer_id, {"t": "buzz"})
 
@@ -358,6 +443,7 @@ func _down(q: Player) -> void:
 	s["down_t"] = 0.0
 	s["roll"] = 0.0
 	downs += 1
+	game.sfx.play("tombe")
 	combo = 0
 	combo_t = 0.0
 	_burst(q.position, 12, [q.color, Art.IVORY], 200.0)
@@ -365,6 +451,7 @@ func _down(q: Player) -> void:
 	if not q.is_free():
 		q.axis = Vector2.ZERO
 		game.net.send(q.peer_id, {"t": "buzz"})
+		game.net.send(q.peer_id, {"t": "sfx", "k": "tombe"})
 		game.net.send(q.peer_id, {"t": "toast", "text": "À terre ! Un équipier peut te relever, ou change de personnage (Y)."})
 
 
@@ -383,6 +470,9 @@ func _stand_up(p: Player, pos: Vector2) -> void:
 	p.position = pos
 	s["revive"] = 0.0
 	s["inv"] = 1.6
+	game.sfx.play("releve")
+	if not p.is_free():
+		game.net.send(p.peer_id, {"t": "sfx", "k": "releve"})
 	_burst(pos, 10, [Art.SAGE, Art.IVORY], 150.0)
 	floaters.append({"pos": pos + Vector2(0, -30), "text": "Debout !", "col": Art.SAGE, "life": 1.2})
 
@@ -517,7 +607,7 @@ func _update_foe(f: Dictionary, delta: float) -> void:
 	var to_t: Vector2 = (tgt.position - fp).normalized()
 	match f["state"]:
 		"move":
-			if f["type"] == "fusilier":
+			if bool(fd.get("ranged", false)):
 				var desired := Vector2.ZERO
 				if dist < 190.0:
 					desired = -to_t
@@ -531,6 +621,7 @@ func _update_foe(f: Dictionary, delta: float) -> void:
 					f["state"] = "wind"
 					f["timer"] = wind
 					f["dir"] = to_t
+					_alert()
 			else:
 				var reach: float = fd["reach"]
 				if dist > reach * 0.75:
@@ -543,7 +634,8 @@ func _update_foe(f: Dictionary, delta: float) -> void:
 					f["state"] = "wind"
 					f["timer"] = wind
 					f["dir"] = to_t
-				elif f["type"] == "capitaine":
+					_alert()
+				elif bool(fd.get("boss", false)):
 					f["fan_t"] = float(f["fan_t"]) - delta
 					if float(f["fan_t"]) <= 0.0 and dist > 150.0 and dist < 560.0 and _clear_line(fp, tgt.position):
 						f["state"] = "wind_fan"
@@ -552,7 +644,7 @@ func _update_foe(f: Dictionary, delta: float) -> void:
 		"wind":
 			f["timer"] = float(f["timer"]) - delta
 			if float(f["timer"]) <= 0.0:
-				if f["type"] == "fusilier":
+				if bool(fd.get("ranged", false)):
 					_foe_fire(f, f["dir"], float(fd["bullet"]))
 				else:
 					_foe_strike(f, float(fd["reach"]))
@@ -562,7 +654,7 @@ func _update_foe(f: Dictionary, delta: float) -> void:
 		"wind_fan":
 			f["timer"] = float(f["timer"]) - delta
 			if float(f["timer"]) <= 0.0:
-				for a in [-0.32, 0.0, 0.32]:
+				for a in fd.get("fan", [-0.32, 0.0, 0.32]):
 					_foe_fire(f, (f["dir"] as Vector2).rotated(a), float(fd["bullet"]))
 				f["fan_t"] = float(fd.get("fan_every", 3.6)) * clampf(enemy_charge, 0.85, 1.6)
 				f["state"] = "recover"
@@ -574,8 +666,15 @@ func _update_foe(f: Dictionary, delta: float) -> void:
 
 
 func _foe_fire(f: Dictionary, dir: Vector2, speed: float) -> void:
+	game.sfx.play("ennemi_tire", randf_range(0.9, 1.1), -6.0)
 	bullets.append({"pos": (f["pos"] as Vector2) + dir * (float(f["radius"]) + 6.0), "vel": dir * speed, "friendly": false, "life": 3.0, "owner": 0})
 	_burst((f["pos"] as Vector2) + dir * (float(f["radius"]) + 8.0), 3, [NEON_PINK, Art.GOLD], 90.0)
+
+
+func _alert() -> void:
+	if t - alert_t > 0.18:
+		alert_t = t
+		game.sfx.play("alerte", 1.0, -8.0)
 
 
 func _foe_strike(f: Dictionary, reach: float) -> void:
@@ -644,6 +743,9 @@ func _update_chests() -> void:
 				c["open"] = true
 				loot += int(c["scrap"])
 				score += 50
+				game.sfx.play("gros_coffre" if bool(c["big"]) else "coffre")
+				if not q.is_free():
+					game.net.send(q.peer_id, {"t": "sfx", "k": "coffre"})
 				_burst(c["pos"], 16, [Art.GOLD, Art.IVORY, Art.COPPER], 200.0)
 				floaters.append({"pos": (c["pos"] as Vector2) + Vector2(0, -28), "text": "+%d ferraille" % int(c["scrap"]), "col": Art.GOLD, "life": 1.4})
 				if not q.is_free():
@@ -672,15 +774,17 @@ func _end(won: bool) -> void:
 			bonus += 3
 		run.apply({"scrap": loot + bonus})
 		run.stats["abordages"] = int(run.stats.get("abordages", 0)) + 1
-		result_title = "Butin récupéré !" if layout_id == "galion" else "Trésor trouvé !"
+		result_title = VICTORIES.get(layout_id, "Butin récupéré !")
 		result_lines = [["Ennemis vaincus", str(kills)], ["Meilleur enchaînement", "×%d%s" % [best_combo, "   (+3)" if best_combo >= 5 else ""]],
 			["Chutes de l'équipage", "%d%s" % [downs, "   (+3)" if downs == 0 else ""]], ["Butin", "+%d ferraille" % (loot + bonus)],
 			["Score", Art.num(score)]]
+		game.sfx.play("victoire")
 		game.toast_all("Abordage réussi ! +%d ferraille" % (loot + bonus))
 	else:
 		run.apply({"hull": -3})
 		result_title = "Repli !"
 		result_lines = [["Ennemis vaincus", str(kills)], ["Le vaisseau encaisse le feu de couverture", "-3 coque"]]
+		game.sfx.play("defaite")
 		game.toast_all("L'équipage bat en retraite…")
 
 
@@ -821,7 +925,7 @@ func _update_effects(delta: float) -> void:
 # ---------------------------------------------------------------- tests
 
 func debug_info(_p: Player) -> Dictionary:
-	return {"state": state, "layout_id": layout_id, "foes": foes.size(), "chests_open": chests.filter(func(c): return c["open"]).size(),
+	return {"state": state, "layout_id": layout_id, "foes": foes.size(), "locked": locked.map(func(l): return [l["door"]["a"], l["door"]["b"], l["left"]]), "chests_open": chests.filter(func(c): return c["open"]).size(),
 		"chests": chests.size(), "cam_x": cam.x, "cam_y": cam.y, "world_w": world.size.x, "kills": kills, "best_combo": best_combo, "loot": loot,
 		"downs": downs, "blocked": [blocked.x, blocked.y], "blocked_t": blocked_t, "laggard": laggard.crew_id if laggard else 0, "score": score,
 		"members": game.crew.map(func(c): return {"id": c.crew_id, "x": c.position.x, "y": c.position.y, "downed": c.downed, "free": c.is_free(),
@@ -849,6 +953,12 @@ func debug_command(p: Player, msg: Dictionary) -> void:
 			state = "fight"
 		"freeze":
 			frozen = bool(msg.get("on", true))
+		"no_locks":
+			locks_off = bool(msg.get("on", true))
+		"clear_room":
+			for f in foes.duplicate():
+				if layout.room_at(f["pos"]).get("id", "") == str(msg.get("room", "")):
+					foes.erase(f)
 		"wake":
 			for f in foes:
 				f["aware"] = true
@@ -870,6 +980,8 @@ func _draw() -> void:
 	var pal: Dictionary = def["palette"]
 	draw_rect(Rect2(cam - Vector2(60, 60), VIEW + Vector2(120, 120)), pal["back"])
 	layout.draw(self, _floor_for, true, pal["wall"], Art.GOLD_DIM)
+	for l in locked:
+		_draw_lock(l)
 	for s in stains:
 		draw_circle(s["pos"], s["r"], s["col"])
 	for c in chests:
@@ -888,6 +1000,22 @@ func _draw() -> void:
 	for fl in floaters:
 		Art.title(self, (fl["pos"] as Vector2) + Vector2(-80, 0), fl["text"], 20, Color(fl["col"], clampf(float(fl["life"]), 0.0, 1.0)), HORIZONTAL_ALIGNMENT_CENTER, 160)
 	_draw_overlay()
+
+
+func _draw_lock(l: Dictionary) -> void:
+	var d: Dictionary = l["door"]
+	var c: Vector2 = d["pos"]
+	var pulse := 0.5 + 0.5 * sin(t * 5.0)
+	var half := layout.door_w / 2.0
+	var axis := Vector2(0, 1) if bool(d["vertical"]) else Vector2(1, 0)
+	var across := Vector2(1, 0) if bool(d["vertical"]) else Vector2(0, 1)
+	draw_line(c - axis * half, c + axis * half, Color(NEON_PINK, 0.35 + 0.25 * pulse), 12.0)
+	for k in 5:
+		var q := c + axis * (-half + half * 2.0 * (k + 0.5) / 5.0)
+		draw_line(q - across * 9.0, q + across * 9.0, Color("#2a1630"), 5.0)
+		draw_line(q - across * 9.0, q + across * 9.0, NEON_PINK, 1.5)
+	draw_circle(c, 9.0, Color("#1a1420"))
+	draw_arc(c, 9.0, 0, TAU, 16, Art.GOLD, 2.0)
 
 
 func _draw_chest(c: Dictionary) -> void:
@@ -913,11 +1041,9 @@ func _draw_foe(f: Dictionary) -> void:
 	var r: float = f["radius"]
 	var face: Vector2 = f["face"]
 	var awake: bool = f["aware"]
-	var coat := Color("#a8483a")
-	if f["type"] == "fusilier":
-		coat = Color("#4d7a80")
-	elif f["type"] == "capitaine":
-		coat = Color("#7d3a8f")
+	var coat: Color = fd["coat"]
+	var ranged: bool = bool(fd.get("ranged", false))
+	var boss: bool = bool(fd.get("boss", false))
 	if float(f["flash"]) > 0.0:
 		coat = Color.WHITE
 	if not awake:
@@ -929,8 +1055,8 @@ func _draw_foe(f: Dictionary) -> void:
 	if f["state"] == "wind" or f["state"] == "wind_fan":
 		var dir: Vector2 = f["dir"]
 		var pulse := 0.5 + 0.5 * sin(t * 28.0)
-		if f["type"] == "fusilier" or f["state"] == "wind_fan":
-			var span := [-0.32, 0.0, 0.32] if f["state"] == "wind_fan" else [0.0]
+		if ranged or f["state"] == "wind_fan":
+			var span: Array = fd.get("fan", [-0.32, 0.0, 0.32]) if f["state"] == "wind_fan" else [0.0]
 			for a in span:
 				draw_line(p, p + dir.rotated(a) * 380.0, Color(NEON_PINK, 0.35 + 0.35 * pulse), 2.0)
 		else:
@@ -941,21 +1067,30 @@ func _draw_foe(f: Dictionary) -> void:
 			draw_colored_polygon(pts, Color(NEON_PINK, 0.18 + 0.2 * pulse))
 		draw_arc(p, r + 8.0 + 4.0 * pulse, 0, TAU, 24, NEON_PINK, 3.0)
 	draw_circle(p, r, coat)
-	draw_arc(p, r, 0, TAU, 28, Art.GOLD if f["type"] == "capitaine" else Art.GOLD_DIM, 2.0)
-	# tricorne
+	draw_arc(p, r, 0, TAU, 28, Art.GOLD if boss else (Art.CORRUPT2 if bool(fd.get("wisp", false)) else Art.GOLD_DIM), 2.0)
 	var up := Vector2(0, -r)
-	var hat := PackedVector2Array([p + up + Vector2(-r * 0.9, 3), p + up + Vector2(0, -r * 0.7), p + up + Vector2(r * 0.9, 3)])
-	draw_colored_polygon(hat, Color("#1a1420"))
-	draw_polyline(hat, Art.GOLD_DIM, 1.5)
-	if f["type"] == "capitaine":
-		draw_line(p + up + Vector2(r * 0.4, -r * 0.4), p + up + Vector2(r * 1.0, -r * 0.9), Art.IVORY, 3.0)
+	if bool(fd.get("hat", false)):
+		var hat := PackedVector2Array([p + up + Vector2(-r * 0.9, 3), p + up + Vector2(0, -r * 0.7), p + up + Vector2(r * 0.9, 3)])
+		draw_colored_polygon(hat, Color("#1a1420"))
+		draw_polyline(hat, Art.GOLD_DIM, 1.5)
+		if boss:
+			draw_line(p + up + Vector2(r * 0.4, -r * 0.4), p + up + Vector2(r * 1.0, -r * 0.9), Art.IVORY, 3.0)
+	else:
+		# volutes de l'Indicible
+		for k in 3:
+			var a0 := float(f["anim"]) * 2.2 + k * 2.1
+			var pts := PackedVector2Array()
+			for i in 6:
+				var u := i / 5.0
+				pts.append(p + Vector2(cos(a0 + u * 1.5), sin(a0 + u * 1.5)) * r * (0.8 + 0.9 * u))
+			draw_polyline(pts, Color(Art.CORRUPT2, 0.7), 2.5, true)
 	# yeux et arme
 	var perp := Vector2(-face.y, face.x)
 	for sgn: float in [-1.0, 1.0]:
 		draw_circle(p + face * r * 0.35 + perp * sgn * r * 0.3, r * 0.15, Art.IVORY if awake else Color(Art.IVORY, 0.4))
-	if f["type"] == "fusilier":
-		draw_line(p + face * r * 0.4, p + face * (r + 16.0), Color("#c9c4b8"), 4.0)
-	else:
+	if ranged:
+		draw_line(p + face * r * 0.4, p + face * (r + 16.0), Color("#c9c4b8") if not bool(fd.get("wisp", false)) else Art.CORRUPT2, 4.0)
+	elif bool(fd.get("hat", false)):
 		draw_line(p + face * (r * 0.5), p + face * (r + 20.0), Color("#dcdcdc"), 3.0)
 	if not awake:
 		Art.text(self, p + Vector2(-r, -r - 14), "z", 14, Color(Art.IVORY, 0.4))
@@ -1024,6 +1159,14 @@ func _draw_overlay() -> void:
 		var k := 1.0 + 0.05 * minf(float(combo), 10.0)
 		Art.title(self, Vector2(cam.x + 440, y + 6), "ENCHAÎNEMENT ×%d" % combo, int(26 * k), NEON_PINK, HORIZONTAL_ALIGNMENT_CENTER, 400)
 		draw_rect(Rect2(cam.x + 540, y + 14, 200.0 * combo_t / COMBO_WINDOW, 4), NEON_CYAN)
+	var lead_m := _nearest_controlled(cam + VIEW / 2.0)
+	if lead_m != null and not locked.is_empty():
+		var rid: String = layout.room_at(lead_m.position).get("id", "")
+		for l in locked:
+			if l["gate"] == rid:
+				Art.title(self, Vector2(cam.x, y + 36), "Portes verrouillées : encore %d ennemi%s dans la salle" % [int(l["left"]), "s" if int(l["left"]) > 1 else ""],
+					18, NEON_PINK, HORIZONTAL_ALIGNMENT_CENTER, VIEW.x)
+				break
 	if laggard != null and blocked_t >= 0.3:
 		Art.title(self, Vector2(cam.x, cam.y + VIEW.y - 52.0), "Attendez %s !" % laggard.player_name, 30, Art.GOLD, HORIZONTAL_ALIGNMENT_CENTER, VIEW.x)
 		Art.text(self, Vector2(cam.x, cam.y + VIEW.y - 28.0), "Le groupe n'avance que s'il reste uni", 15, Color(Art.IVORY, 0.7), HORIZONTAL_ALIGNMENT_CENTER, VIEW.x)
@@ -1031,7 +1174,7 @@ func _draw_overlay() -> void:
 		var a := clampf((INTRO - t) / 0.7, 0.0, 1.0)
 		var band := Rect2(cam.x, cam.y + 290, VIEW.x, 110)
 		draw_rect(band, Color(0, 0, 0, 0.55 * a))
-		Art.title(self, Vector2(cam.x, cam.y + 362), "À L'ABORDAGE !" if layout_id == "galion" else "TERRE EN VUE !", 58, Color(NEON_PINK, a), HORIZONTAL_ALIGNMENT_CENTER, VIEW.x)
+		Art.title(self, Vector2(cam.x, cam.y + 362), BANNERS.get(layout_id, "À L'ABORDAGE !"), 58, Color(NEON_PINK, a), HORIZONTAL_ALIGNMENT_CENTER, VIEW.x)
 	elif t < INTRO + 6.0 and state == "fight":
 		var a2 := clampf((INTRO + 6.0 - t) / 1.5, 0.0, 1.0)
 		Art.text(self, Vector2(cam.x, cam.y + VIEW.y - 20.0), "A frapper  ·  B tirer (visée automatique)  ·  X roulade (esquive les coups)  ·  restez près d'un équipier à terre pour le relever",

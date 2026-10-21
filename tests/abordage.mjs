@@ -39,6 +39,7 @@ let d = await waitScene(a, "abordage", 5000);
 check(d.foes >= 8 && d.chests === 4, `galion : ${d.foes} ennemis, ${d.chests} coffres, ${d.members.length} membres d'équipage`);
 check(d.members.every((m) => m.x < 330), "tout l'équipage démarre sur la passerelle");
 await a.cmd({ cmd: "freeze" });
+await a.cmd({ cmd: "no_locks" });
 await sleep(2000);
 d = await a.dbg();
 check(d.state === "fight", "l'introduction est passée : le combat commence");
@@ -128,6 +129,31 @@ check(d.state === "lost", "tout l'équipage à terre : repli");
 await waitScene(a, "carte", 9000);
 d = await a.dbg();
 check(d.run.hull === hull0 - 3, `le repli coûte 3 de coque (${hull0} → ${d.run.hull})`);
+
+
+// --- Portes verrouillées : on ne passe qu'une fois la salle nettoyée
+await a.cmd({ cmd: "goto", scene: "abordage", args: { layout: "galion" } });
+await waitScene(a, "abordage", 5000);
+await a.cmd({ cmd: "freeze" });
+await sleep(2200);
+a.x = 1; a.y = 0;
+await sleep(6500);
+d = await a.dbg();
+let me = d.members.find((m) => m.id === d.me);
+check(d.locked.some((l) => l[0] === "coursive" && l[1] === "carre") && me.x < 800, `porte du Carré verrouillée : le joueur reste dans la Coursive (x ${Math.round(me.x)}, ${d.locked.length} portes fermées)`);
+await a.cmd({ cmd: "clear_room", room: "coursive" });
+await sleep(4500);
+d = await a.dbg();
+me = d.members.find((m) => m.id === d.me);
+check(d.locked.every((l) => l[0] !== "coursive") && me.x > 850, `Coursive nettoyée : la porte s'ouvre (x ${Math.round(me.x)})`);
+a.x = 0;
+
+// --- Tous les niveaux se chargent
+for (const lay of ["caravelle", "epave", "ile", "galion"]) {
+  await a.cmd({ cmd: "goto", scene: "abordage", args: { layout: lay } });
+  d = await waitScene(a, "abordage", 5000);
+  check(d.layout_id === lay && d.foes >= 6 && d.chests >= 3 && d.world_w >= 1500, `niveau « ${lay} » : ${d.foes} ennemis, ${d.chests} coffres, ${d.world_w} px de large`);
+}
 
 console.log(failures ? `${failures} échec(s)` : "Tout est bon.");
 process.exit(failures ? 1 : 0);

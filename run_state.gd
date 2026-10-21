@@ -129,7 +129,7 @@ func generate_map() -> void:
 		func(): return _shuffle(["combat", "evenement", "halte"]),
 		func(): return _shuffle(["boutique", "abordage", "combat"]),
 		func(): return _shuffle(["combat", "ile", ["evenement", "halte"].pick_random()]),
-		func(): return _shuffle(["boutique", "combat"]),
+		func(): return _shuffle(["boutique", "combat", "epave"]),
 	]
 	if layers - 2 < middle.size():
 		middle = [middle[0], middle[2], middle[4]].slice(0, maxi(layers - 2, 1))
@@ -201,6 +201,9 @@ static func type_label(type: String) -> String:
 		"evenement": return "Inconnu"
 		"halte": return "Halte"
 		"boutique": return "Boutique"
+		"abordage": return "Navire marchand"
+		"ile": return "Île au trésor"
+		"epave": return "Épave corrompue"
 		"boss": return "L'Indicible"
 		"depart": return "Départ"
 	return type
