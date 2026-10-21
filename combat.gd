@@ -37,6 +37,16 @@ var state := "fight"                  # fight, won, lost
 var end_at := 0.0
 var reward_text := ""
 var weapons_console := Vector2.ZERO
+var pilot_console := Vector2.ZERO
+var engineer_console := Vector2.ZERO
+var pilot := 0                        # téléphone assis au pilotage
+var engineer := 0                     # téléphone assis aux machines
+var power := "armes"                  # où l'ingénieur envoie l'énergie : armes, boucliers ou moteurs
+var sealed := false                   # cloisons fermées : le feu ne se propage plus
+var maneuver_t := 0.0                 # manœuvre d'évitement en cours (secondes restantes)
+var maneuver_cd := 0.0                # délai avant la prochaine manœuvre
+const MANEUVER_TIME := 2.5
+const MANEUVER_COOLDOWN := 9.0
 var _last_armes_push := 0.0
 
 
@@ -58,6 +68,13 @@ func enter(args: Dictionary) -> void:
 	var armes_room := layout.room_with_system("armes")
 	var ar: Rect2 = armes_room["rect"]
 	weapons_console = Vector2(ar.end.x - 30, ar.get_center().y)
+	var pr := layout.room_with_system("pilotage")
+	if not pr.is_empty():
+		pilot_console = (pr["rect"] as Rect2).get_center() + Vector2(0, 26)
+	var cr2 := layout.room("coursive")
+	if cr2.is_empty():
+		cr2 = layout.rooms[0]
+	engineer_console = (cr2["rect"] as Rect2).end - Vector2(26, 26)
 	_setup_enemy(str(args.get("enemy", "eclaireur")))
 	cross = enemy_layout.bounds.get_center()
 	# Les avatars des joueurs démarrent dans la coursive, les recrues à leurs postes.
@@ -106,6 +123,10 @@ func shows_players() -> bool:
 
 
 func layout_for(p: Player) -> Dictionary:
+	if p.seated and p.peer_id == pilot:
+		return {"t": "layout", "mode": "armes", "title": "Pilotage", "weapons": _seat_items(p), "hint": "Rien à viser :\nvire au bon moment"}
+	if p.seated and p.peer_id == engineer:
+		return {"t": "layout", "mode": "armes", "title": "Machines", "weapons": _seat_items(p), "hint": "Rien à viser :\nenvoie l'énergie"}
 	if p.seated:
 		return {"t": "layout", "mode": "armes", "title": "Poste d'armes", "weapons": _weapons_state()}
 	return {"t": "layout", "mode": "base"}
@@ -120,8 +141,17 @@ func on_leave(p: Player) -> void:
 
 
 func on_release(p: Player) -> void:
-	if p.seated and gunner == p.peer_id:
+	_leave_seat(p)
+
+
+func _leave_seat(p: Player) -> void:
+	if gunner == p.peer_id:
 		gunner = 0
+	if pilot == p.peer_id:
+		pilot = 0
+	if engineer == p.peer_id:
+		engineer = 0
+		sealed = false
 
 
 func location_name(p: Player) -> String:
@@ -142,7 +172,32 @@ func enemy_eff(s: String) -> int:
 
 
 func player_evasion() -> float:
-	return 0.0 if eff("pilotage") <= 0 else 0.06 * eff("moteurs")
+	if eff("pilotage") <= 0:
+		return 0.0
+	var e := 0.06 * eff("moteurs")
+	if pilot != 0:
+		e += 0.08                                  # un pilote à la barre fait toujours mieux que l'automatique
+	if maneuver_t > 0.0:
+		e += 0.32
+	if engineer != 0 and power == "moteurs":
+		e += 0.08
+	return minf(e, 0.75)
+
+
+## Boutons affichés sur le téléphone du pilote ou de l'ingénieur (même interface que les armes).
+func _seat_items(p: Player) -> Array:
+	if p.peer_id == pilot:
+		var ready := maneuver_cd <= 0.0 and maneuver_t <= 0.0
+		var frac := 1.0 if ready else (1.0 - maneuver_cd / MANEUVER_COOLDOWN if maneuver_t <= 0.0 else 1.0)
+		return [{"name": "Virer !", "label": "Manœuvre en cours" if maneuver_t > 0.0 else ("Virer !" if ready else "Moteurs en charge…"),
+			"charge": snappedf(frac, 0.01), "ready": ready, "powered": eff("pilotage") > 0}]
+	var out: Array = []
+	for k in ["armes", "boucliers", "moteurs"]:
+		out.append({"name": k, "label": ("⚡ " if power == k else "") + k.capitalize(), "charge": 1.0 if power == k else 0.0,
+			"ready": power == k, "powered": true})
+	out.append({"name": "cloisons", "label": "Cloisons : " + ("fermées" if sealed else "ouvertes"), "charge": 1.0 if sealed else 0.0,
+		"ready": sealed, "powered": true})
+	return out
 
 
 func enemy_evasion() -> float:
@@ -181,9 +236,16 @@ func update(delta: float) -> void:
 			_end(true)
 	_update_shots(delta)
 	_update_effects(delta)
-	if gunner != 0 and t - _last_armes_push > 0.15 and game.players.has(gunner):
+	maneuver_t = maxf(0.0, maneuver_t - delta)
+	if maneuver_t <= 0.0:
+		maneuver_cd = maxf(0.0, maneuver_cd - delta)
+	if t - _last_armes_push > 0.15:
 		_last_armes_push = t
-		game.net.send(gunner, {"t": "armes", "weapons": _weapons_state(), "target": _target_name()})
+		if gunner != 0 and game.players.has(gunner):
+			game.net.send(gunner, {"t": "armes", "weapons": _weapons_state(), "target": _target_name()})
+		for id in [pilot, engineer]:
+			if id != 0 and game.players.has(id):
+				game.net.send(id, {"t": "armes", "weapons": _seat_items(game.players[id]), "target": ""})
 	if state != "fight" and t >= end_at and end_at > 0.0:
 		end_at = -1.0
 		if state == "won":
@@ -192,7 +254,24 @@ func update(delta: float) -> void:
 			game.end_run(false)
 
 
+func _sit(p: Player, at: Vector2) -> void:
+	p.seated = true
+	p.axis = Vector2.ZERO
+	p.position = at + Vector2(-30, 0)
+	p.facing = Vector2.RIGHT
+	game.net.send(p.peer_id, layout_for(p))
+
+
 func _interact(p: Player) -> void:
+	if state == "fight" and p.pressed(0):
+		if pilot == 0 and p.position.distance_to(pilot_console) < NEAR:
+			pilot = p.peer_id
+			_sit(p, pilot_console)
+			return
+		if engineer == 0 and p.position.distance_to(engineer_console) < NEAR:
+			engineer = p.peer_id
+			_sit(p, engineer_console)
+			return
 	if p.pressed(0) and gunner == 0 and p.position.distance_to(weapons_console) < NEAR:
 		gunner = p.peer_id
 		p.seated = true
@@ -208,6 +287,10 @@ func hints_for(p: Player) -> Dictionary:
 		return h
 	if gunner == 0 and p.position.distance_to(weapons_console) < NEAR:
 		h[0] = "Armes"
+	elif pilot == 0 and p.position.distance_to(pilot_console) < NEAR:
+		h[0] = "Pilotage"
+	elif engineer == 0 and p.position.distance_to(engineer_console) < NEAR:
+		h[0] = "Machines"
 	for f in fires:
 		if p.position.distance_to(f["pos"]) < NEAR + 6:
 			h[1] = "Éteindre"
@@ -223,11 +306,21 @@ func on_action(p: Player, action: String, msg: Dictionary) -> void:
 		"quit":
 			if p.seated:
 				p.seated = false
-				if gunner == p.peer_id:
-					gunner = 0
+				_leave_seat(p)
 				game.net.send(p.peer_id, layout_for(p))
 		"fire":
-			if p.seated and gunner == p.peer_id and state == "fight":
+			if p.seated and pilot == p.peer_id and state == "fight":
+				if maneuver_cd <= 0.0 and maneuver_t <= 0.0 and eff("pilotage") > 0:
+					maneuver_t = MANEUVER_TIME
+					maneuver_cd = MANEUVER_COOLDOWN
+					_float(layout.room_with_system("pilotage")["rect"].get_center(), "Manœuvre !", Art.SAGE)
+			elif p.seated and engineer == p.peer_id and state == "fight":
+				var k := int(msg.get("w", 0))
+				if k >= 0 and k < 3:
+					power = ["armes", "boucliers", "moteurs"][k]
+				elif k == 3:
+					sealed = not sealed
+			elif p.seated and gunner == p.peer_id and state == "fight":
 				var i := int(msg.get("w", 0))
 				if i >= 0 and i < weapons.size():
 					_try_fire(i, p)
@@ -277,7 +370,7 @@ func _update_player_weapons(delta: float) -> void:
 		var w: Dictionary = weapons[i]
 		var def: Dictionary = ShipData.WEAPONS[w["id"]]
 		if i < powered:
-			w["charge"] = minf(def["charge"], w["charge"] + delta)
+			w["charge"] = minf(def["charge"], w["charge"] + delta * (1.5 if engineer != 0 and power == "armes" else 1.0))
 		else:
 			w["charge"] = maxf(0.0, w["charge"] - delta * 2.0)
 		if w["charge"] >= def["charge"]:
@@ -293,7 +386,7 @@ func _update_shields(delta: float) -> void:
 	if shield_layers > max_layers:
 		shield_layers = max_layers
 	if shield_layers < max_layers:
-		shield_t += delta
+		shield_t += delta * (2.0 if engineer != 0 and power == "boucliers" else 1.0)
 		if shield_t >= SHIELD_RECHARGE:
 			shield_t = 0.0
 			shield_layers += 1
@@ -451,7 +544,7 @@ func _update_fires(delta: float) -> void:
 		if f["spread"] >= FIRE_SPREAD_EVERY:
 			f["spread"] = 0.0
 			var neigh := layout.neighbors(f["room"])
-			if not neigh.is_empty() and randf() < 0.25:
+			if not neigh.is_empty() and not sealed and randf() < 0.25:
 				_start_fire(layout.room(neigh.pick_random()))
 
 
@@ -533,7 +626,8 @@ func debug_info(_p: Player) -> Dictionary:
 		dmg[s] = sys[s]["damage"]
 	return {"time": snappedf(t, 0.1), "state": state, "enemy": enemy["id"], "enemy_hull": enemy["hull"], "enemy_shields": enemy["shields"],
 		"shields": shield_layers, "sys_damage": dmg, "fires": fires.map(func(f): return [f["pos"].x, f["pos"].y, f["room"]]),
-		"gunner": gunner, "cross_x": cross.x, "cross_y": cross.y, "weapons": _weapons_state(),
+		"gunner": gunner, "pilot": pilot, "engineer": engineer, "power": power, "sealed": sealed, "evasion": snappedf(player_evasion(), 0.001),
+		"maneuver": maneuver_t, "pilot_x": pilot_console.x, "pilot_y": pilot_console.y, "eng_x": engineer_console.x, "eng_y": engineer_console.y, "cross_x": cross.x, "cross_y": cross.y, "weapons": _weapons_state(),
 		"console_x": weapons_console.x, "console_y": weapons_console.y,
 		"enemy_rooms": enemy_layout.rooms.map(func(r): return {"id": r["id"], "x": (r["rect"] as Rect2).get_center().x, "y": (r["rect"] as Rect2).get_center().y}),
 		"rooms": layout.rooms.map(func(r): return {"id": r["id"], "system": r["system"], "x": (r["rect"] as Rect2).get_center().x, "y": (r["rect"] as Rect2).get_center().y}),
@@ -622,6 +716,17 @@ func _draw_player_ship() -> void:
 	draw_rect(cr, Art.GOLD if gunner == 0 else Art.GOLD_DIM, false, 2.0)
 	if gunner == 0 and state == "fight":
 		Art.text(self, weapons_console + Vector2(-70, -28), "A : poste d'armes", 11, Color(Art.GOLD, 0.7 + 0.3 * sin(t * 3.0)), HORIZONTAL_ALIGNMENT_CENTER, 120)
+	for c in [[pilot_console, pilot, "A : pilotage"], [engineer_console, engineer, "A : machines"]]:
+		var rc := Rect2(c[0] - Vector2(12, 12), Vector2(24, 24))
+		draw_rect(rc, Color("#1a1620"))
+		draw_rect(rc, Art.GOLD if c[1] == 0 else Art.GOLD_DIM, false, 2.0)
+		if c[1] == 0 and state == "fight":
+			Art.text(self, c[0] + Vector2(-60, -18), c[2], 11, Color(Art.GOLD, 0.7 + 0.3 * sin(t * 3.0)), HORIZONTAL_ALIGNMENT_CENTER, 120)
+	if sealed:
+		for d in layout.doors:
+			draw_circle(d["pos"], 6, Color(Art.DANGER, 0.8))
+	if maneuver_t > 0.0:
+		draw_arc(layout.bounds.get_center(), 250, 0, TAU, 60, Color(Art.SAGE, 0.35), 3.0)
 	for f in fires:
 		Art.fire(self, f["pos"], f["intensity"], t, 0.85)
 
@@ -740,4 +845,4 @@ func _draw_weapon_panel() -> void:
 	Art.icon(self, "bouclier", Vector2(x + 20, r.position.y + 12))
 	Art.text(self, Vector2(x + 36, r.position.y + 18), "%d/%d" % [shield_layers, eff("boucliers")], 15)
 	Art.text(self, Vector2(x, r.position.y + 40), "Esquive %d %%" % int(round(player_evasion() * 100)), 13, Color(Art.IVORY, 0.6))
-	Art.text(self, Vector2(870, 668), "B : éteindre / réparer · A au poste d'armes : viser", 14, Color(Art.IVORY, 0.55), HORIZONTAL_ALIGNMENT_CENTER, 380)
+	Art.text(self, Vector2(870, 668), "B : éteindre / réparer · A aux postes : armes, pilotage, machines", 14, Color(Art.IVORY, 0.55), HORIZONTAL_ALIGNMENT_CENTER, 380)

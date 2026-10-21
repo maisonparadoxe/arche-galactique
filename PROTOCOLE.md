@@ -38,7 +38,7 @@ Messages JSON texte sur WebSocket (port 9080). Le champ `t` donne le type. La pa
 | `mode` | Champs | Écran |
 | --- | --- | --- |
 | `base` | — | Joystick et 4 boutons |
-| `armes` | `title`, `weapons` | Viseur au joystick, un bouton par arme |
+| `armes` | `title`, `weapons`, `hint` | Viseur au joystick, un bouton par arme. Réutilisé pour le pilotage et les machines (`weapons[].label` remplace le texte du bouton) |
 | `vote` | `title`, `text`, `options` [{`id`, `label`, `desc`, `disabled`}], `mine`, `counts`, `remaining`, `duration` | Liste d'options à voter, minuteur |
 | `equipage` | `crew` : [{`id`, `name`, `species`, `species_label`, `ability`, `color`, `ornament`, `status` (`toi`, `libre` ou nom du joueur), `free`, `where`, `avatar`}] | Liste de l'équipage, ouverte avec Y |
 | `info` | `title`, `text` | Message simple (« Regarde l'écran ») |

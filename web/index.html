@@ -549,6 +549,7 @@
     switch (m.mode) {
       case "armes":
         $("#armes-title").textContent = m.title || "Poste d'armes";
+        $("#armes .stick-hint").innerHTML = m.hint ? esc(m.hint).replace(/\n/g, "<br>") : "Pouce ici<br>pour viser";
         renderWeapons(m.weapons || [], "", true);
         show("armes");
         break;
@@ -577,7 +578,7 @@
       b.classList.toggle("ready", !!w.ready && w.powered);
       b.classList.toggle("off", !w.powered);
       b.querySelector(".fill").style.width = `${Math.round((w.charge || 0) * 100)}%`;
-      b.querySelector(".lbl").textContent = w.powered ? (w.ready ? `Tirer : ${w.name}` : w.name) : `${w.name} (hors service)`;
+      b.querySelector(".lbl").textContent = w.label ? w.label : w.powered ? (w.ready ? `Tirer : ${w.name}` : w.name) : `${w.name} (hors service)`;
       if (!wasReady && w.ready && w.powered && !rebuild) { beep(880, 40); vibrate(15); }
     });
     $("#target").textContent = target ? `Visée : ${target}` : "";

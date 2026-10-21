@@ -65,6 +65,8 @@ Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux
 | Action | Comment |
 | --- | --- |
 | Viser et tirer | **A** devant le poste d'armes : la manette devient le poste d'armes. Le joystick déplace le viseur sur le vaisseau ennemi, un bouton par arme tire quand elle est chargée. Sans artilleur, les armes tirent seules, plus lentement et au hasard. |
+| Piloter | **A** devant la console du Pont : bouton « Virer ! » = 2,5 s d'esquive +32 % (délai 9 s). Un pilote à la barre ajoute aussi +8 % d'esquive en permanence. |
+| Machines | **A** devant la console de la coursive : on envoie l'énergie aux armes (charge ×1,5), aux boucliers (recharge ×2) ou aux moteurs (+8 % d'esquive). Le bouton « Cloisons » empêche le feu de se propager. Sans ingénieur : rien de tout ça. |
 | Éteindre un feu | Maintenir **B** près des flammes (Salamandrin ×2). Un feu abîme le système de la salle, la coque, et peut se propager. Un membre libre éteint seul les feux de sa salle. |
 | Réparer | Maintenir **B** dans une salle dont le système est endommagé (Humain ×2). Un membre libre répare seul le système de sa salle. |
 | Changer de personnage | **Y**, puis toucher un membre libre dans la liste. |
