@@ -27,6 +27,7 @@ var seen_events: Array = []
 var stats := {"jumps": 0, "combats": 0, "events": 0, "scrap_earned": 0}
 var victory := false
 var ended := false
+var clones: Dictionary = {}       # crew_id -> nombre de clonages subis (malus de vitesse)
 var renown := 0                # réputation, de -10 (fléau des mers) à +10 (corsaire exemplaire)
 
 
@@ -65,6 +66,18 @@ func add_scrap(n: int) -> void:
 	scrap = maxi(0, scrap + n)
 	if n > 0:
 		stats["scrap_earned"] += n
+
+
+## Malus d'un clone fatigué : -7 % de vitesse par génération, jusqu'à -35 %.
+func clone_speed(crew_id: int) -> float:
+	return 1.0 - 0.07 * mini(int(clones.get(crew_id, 0)), 5)
+
+
+func clone_total() -> int:
+	var n := 0
+	for k in clones:
+		n += int(clones[k])
+	return n
 
 
 func add_renown(n: int) -> void:
@@ -114,6 +127,10 @@ func apply(effects: Dictionary) -> String:
 		add_renown(int(effects["rep"]))
 		if renown != before:
 			parts.append("réputation %+d" % (renown - before))
+	if effects.has("uncloning"):
+		var had := clone_total()
+		clones.clear()
+		parts.append("clones reposés" if had > 0 else "cuve inutilisée")
 	if effects.has("scrap"):
 		add_scrap(int(effects["scrap"]))
 		parts.append("%+d ferraille" % int(effects["scrap"]))

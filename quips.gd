@@ -30,6 +30,13 @@ const BANK := {
 		"Je n'ai rien vu de l'au-delà, c'était mal éclairé.",
 		"Ma dette envers vous est considérable. Je la nierai demain.",
 	]],
+	"clone": [0.8, [
+		"La cryo m'a refait. Il manque peut-être un détail, je vous laisse chercher.",
+		"Retour du congélateur. Je me sens... plus récent.",
+		"C'est moi, en mieux. Ou en un peu moins bien. Disons en copie.",
+		"Si je me trouve un doublon, je lui laisse la corvée de pont.",
+		"Barjavel avait raison : le froid, ça conserve, mais pas tout.",
+	]],
 	"coffre": [0.4, [
 		"Le trésor ! Et pas une seule carte au dos de la boîte.",
 		"On partage en parts égales. Enfin, en parts proches.",

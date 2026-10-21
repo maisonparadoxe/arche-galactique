@@ -100,6 +100,7 @@ func _switch(name: String, args: Dictionary) -> void:
 		scene.queue_free()
 	for p: Player in crew:
 		p.reset_state()
+		p.clone_gen = int(run.clones.get(p.crew_id, 0)) if run else 0
 	for who in people.values():
 		who["choosing"] = false
 		who["hint_key"] = "?"
@@ -421,7 +422,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 	if run:
 		info["quips"] = crew.filter(func(q): return q.bubble_t > 0.0).map(func(q): return q.bubble)
 		info["run"] = {"ship": run.ship_id, "hull": run.hull, "hull_max": run.hull_max, "fuel": run.fuel, "scrap": run.scrap,
-			"colons": run.colons, "renown": run.renown, "node": run.current, "difficulty": run.difficulty, "layers": run.layers, "layer": run.depth(), "type": run.node(run.current)["type"],
+			"colons": run.colons, "renown": run.renown, "clones_total": run.clone_total(), "node": run.current, "difficulty": run.difficulty, "layers": run.layers, "layer": run.depth(), "type": run.node(run.current)["type"],
 			"weapons": run.weapons, "shields": run.shields, "engines": run.engines, "victory": run.victory, "ended": run.ended}
 	info.merge(scene.debug_info(p), true)
 	net.send(id, info)

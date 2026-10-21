@@ -31,6 +31,7 @@ var medals := 0
 var downed := false              # à terre (abordage) : ne peut plus agir tant qu'on ne l'a pas relevé
 var revive_frac := 0.0           # progression de la relève, de 0 à 1
 var blink := 0.0                 # invulnérabilité : le personnage clignote
+var clone_gen := 0               # nombre de fois recloné dans la cryo (malus de vitesse)
 var bubble := ""                 # réplique en cours (bulle au-dessus du personnage)
 var bubble_t := 0.0
 
@@ -119,6 +120,8 @@ func _draw() -> void:
 		draw_circle(g, 4, GOLD)
 		draw_circle(g, 1.8, Color("#1a1420"))
 	var font := ThemeDB.fallback_font
+	if clone_gen > 0:
+		draw_string(font, Vector2(-80, -r - 8), "clone " + "I".repeat(clone_gen) if clone_gen < 4 else "clone %d" % clone_gen, HORIZONTAL_ALIGNMENT_CENTER, 160, 11, Color("#5fd4c4", 0.8))
 	draw_string(font, Vector2(-80, r + 24), player_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 15, IVORY if not free else Color(IVORY, 0.6))
 	var info := ""
 	if seated:

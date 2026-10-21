@@ -62,6 +62,7 @@ var combo_t := 0.0
 var best_combo := 0
 var score := 0
 var loot := 0
+var clonings := 0
 var downs := 0
 var blocked := Vector2.ZERO           # direction dans laquelle le groupe est retenu
 var blocked_t := 0.0
@@ -70,6 +71,7 @@ var crowd := 1.0
 var frozen := false                   # tests : les ennemis ne bougent plus
 var depth: Dictionary = {}            # salle -> nombre de portes depuis le départ
 var locked: Array = []                # portes fermées : on ne les passe qu'une fois la salle d'avant nettoyée
+var no_revive := false               # tests : personne ne relève, la cryo doit s'en charger
 var locks_off := false                # tests : toutes les portes sont ouvertes
 var lock_note_t := -9.0
 var alert_t := -9.0
@@ -263,7 +265,7 @@ func _control(p: Player, s: Dictionary, delta: float) -> void:
 	if float(s["roll"]) > 0.0:
 		_move(p, (s["roll_dir"] as Vector2) * ROLL_SPEED * delta)
 	else:
-		_move(p, p.axis * SPEED * delta)
+		_move(p, p.axis * SPEED * game.run.clone_speed(p.crew_id) * delta)
 		if p.pressed(2) and float(s["roll_cd"]) <= 0.0:
 			var dir: Vector2 = p.axis.normalized() if p.axis.length() > 0.2 else p.facing
 			s["roll_dir"] = dir
@@ -467,6 +469,17 @@ func _try_hit(q: Player) -> bool:
 	return true
 
 
+## Personne n'est venu : la cryo refabrique le membre, un peu plus fatigué à chaque fois.
+func _clone(p: Player, pos: Vector2) -> void:
+	var run: RunState = game.run
+	run.clones[p.crew_id] = int(run.clones.get(p.crew_id, 0)) + 1
+	p.clone_gen = int(run.clones[p.crew_id])
+	clonings += 1
+	_stand_up(p, pos)
+	floaters.append({"pos": pos + Vector2(0, -52), "text": "Recloné (cryo)", "col": Color("#5fd4c4"), "life": 1.8})
+	game.quips.react("clone", p)
+
+
 func _stand_up(p: Player, pos: Vector2) -> void:
 	var s := _s(p)
 	p.downed = false
@@ -489,7 +502,7 @@ func _revive(delta: float) -> void:
 		var s := _s(d)
 		var rate := 0.0
 		for h: Player in game.crew:
-			if h == d or h.downed or h.position.distance_to(d.position) > REVIVE_RANGE:
+			if no_revive or h == d or h.downed or h.position.distance_to(d.position) > REVIVE_RANGE:
 				continue
 			var k := 1.0 / REVIVE_TIME
 			if h.species == "humain":
@@ -510,7 +523,7 @@ func _revive(delta: float) -> void:
 				var spot: Vector2 = ally.position + Vector2(44, 0)
 				if not layout.is_walkable(spot, d.radius()):
 					spot = ally.position
-				_stand_up(d, spot)
+				_clone(d, spot)
 
 
 # ---------------------------------------------------------------- équipage libre
@@ -546,7 +559,7 @@ func _ai(p: Player, s: Dictionary, delta: float) -> void:
 		var dir := wp - p.position
 		if dir.length() > 6.0:
 			dir = dir.normalized()
-			_move(p, dir * SPEED * AI_SPEED * delta)
+			_move(p, dir * SPEED * AI_SPEED * game.run.clone_speed(p.crew_id) * delta)
 			p.facing = dir
 
 
@@ -783,7 +796,7 @@ func _end(won: bool) -> void:
 		run.stats["abordages"] = int(run.stats.get("abordages", 0)) + 1
 		result_title = VICTORIES.get(layout_id, "Butin récupéré !")
 		result_lines = [["Ennemis vaincus", str(kills)], ["Meilleur enchaînement", "×%d%s" % [best_combo, "   (+3)" if best_combo >= 5 else ""]],
-			["Chutes de l'équipage", "%d%s" % [downs, "   (+3)" if downs == 0 else ""]], ["Butin", "+%d ferraille" % (loot + bonus)],
+			["Clonages en cryo", str(clonings)], ["Chutes de l'équipage", "%d%s" % [downs, "   (+3)" if downs == 0 else ""]], ["Butin", "+%d ferraille" % (loot + bonus)],
 			["Score", Art.num(score)]]
 		game.sfx.play("victoire")
 		game.quips.react("victoire", null, true)
@@ -936,9 +949,9 @@ func _update_effects(delta: float) -> void:
 func debug_info(_p: Player) -> Dictionary:
 	return {"state": state, "layout_id": layout_id, "foes": foes.size(), "locked": locked.map(func(l): return [l["door"]["a"], l["door"]["b"], l["left"]]), "chests_open": chests.filter(func(c): return c["open"]).size(),
 		"chests": chests.size(), "cam_x": cam.x, "cam_y": cam.y, "world_w": world.size.x, "kills": kills, "best_combo": best_combo, "loot": loot,
-		"downs": downs, "blocked": [blocked.x, blocked.y], "blocked_t": blocked_t, "laggard": laggard.crew_id if laggard else 0, "score": score,
+		"downs": downs, "clonings": clonings, "blocked": [blocked.x, blocked.y], "blocked_t": blocked_t, "laggard": laggard.crew_id if laggard else 0, "score": score,
 		"members": game.crew.map(func(c): return {"id": c.crew_id, "x": c.position.x, "y": c.position.y, "downed": c.downed, "free": c.is_free(),
-			"revive": c.revive_frac, "edge_t": snappedf(float(_s(c)["edge_t"]), 0.01)}),
+			"revive": c.revive_frac, "clone_gen": c.clone_gen, "edge_t": snappedf(float(_s(c)["edge_t"]), 0.01)}),
 		"foe_list": foes.map(func(f): return {"type": f["type"], "x": f["pos"].x, "y": f["pos"].y, "aware": f["aware"], "state": f["state"]}),
 		"rooms": layout.rooms.map(func(r): return {"id": r["id"], "x": (r["rect"] as Rect2).get_center().x, "y": (r["rect"] as Rect2).get_center().y})}
 
@@ -962,6 +975,8 @@ func debug_command(p: Player, msg: Dictionary) -> void:
 			state = "fight"
 		"freeze":
 			frozen = bool(msg.get("on", true))
+		"no_revive":
+			no_revive = bool(msg.get("on", true))
 		"no_locks":
 			locks_off = bool(msg.get("on", true))
 		"clear_room":
