@@ -55,6 +55,9 @@ var _last_armes_push := 0.0
 func enter(args: Dictionary) -> void:
 	var run: RunState = game.run
 	game.quips.react("combat")
+	game.quips.react("folie")
+	if str(args.get("enemy", "")) == "avatar":
+		game.run.apply({"folie": 1})
 	ship_def = ShipData.PLAYER_SHIPS[run.ship_id]
 	layout = ShipLayout.build(ship_def["layout"], PLAYER_AREA, 64.0)
 	sys = {

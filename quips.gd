@@ -30,6 +30,14 @@ const BANK := {
 		"Je n'ai rien vu de l'au-delà, c'était mal éclairé.",
 		"Ma dette envers vous est considérable. Je la nierai demain.",
 	]],
+	"folie": [0.45, [
+		"Vous entendez ça ? Non ? Tant mieux. Enfin, tant pis.",
+		"Je viens de compter les étoiles. Il y en a une de trop.",
+		"Les murs murmurent. Ils ont de bonnes références, d'ailleurs.",
+		"Je crois que quelque chose, là-bas, connaît mon prénom.",
+		"Tout va bien. Tout va même très bien. C'est ça qui m'inquiète.",
+		"Il y a une porte dans mes rêves, et elle ressemble à la nôtre.",
+	]],
 	"clone": [0.8, [
 		"La cryo m'a refait. Il manque peut-être un détail, je vous laisse chercher.",
 		"Retour du congélateur. Je me sens... plus récent.",
@@ -109,6 +117,8 @@ func tick(delta: float) -> void:
 ## `who` : le personnage concerné, ou null pour en tirer un au hasard.
 func react(situation: String, who: Player = null, force := false) -> bool:
 	if not BANK.has(situation):
+		return false
+	if situation == "folie" and (game.run == null or game.run.madness <= 0):
 		return false
 	if not force:
 		if cooldown > 0.0 or float(situation_cd.get(situation, 0.0)) > 0.0:

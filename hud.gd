@@ -20,3 +20,7 @@ static func draw(ci: CanvasItem, run: RunState, y := 18.0, x := 40.0) -> void:
 		cx += 44 + Art.font().get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
 	Art.icon(ci, "reputation", Vector2(cx + 10, y + 16))
 	Art.text(ci, Vector2(cx + 26, y + 22), RunState.renown_title(run.renown), 15, RunState.renown_color(run.renown))
+	if run.madness > 0:
+		cx += 50 + Art.font().get_string_size(RunState.renown_title(run.renown), HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+		Art.system_glyph(ci, "coeur", Vector2(cx + 10, y + 16), 0.5, Art.CORRUPT2)
+		Art.text(ci, Vector2(cx + 26, y + 22), RunState.madness_title(run.madness), 15, Art.CORRUPT2)

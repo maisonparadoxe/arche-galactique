@@ -413,6 +413,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 			"shot": _shot(str(msg.get("path", "user://shot.png")))
 			"goto": goto(str(msg.get("scene", "academie")), msg.get("args", {}))
 			"quip": quips.react(str(msg.get("situation", "victoire")), null, true)
+			"madness": if run: run.madness = clampi(int(msg.get("value", 0)), 0, 3)
 			"rep": if run: run.renown = clampi(int(msg.get("value", 0)), -10, 10)
 			_: scene.debug_command(p, msg)
 	var info := {"t": "dbg", "scene": scene_name, "x": p.position.x, "y": p.position.y, "seated": p.seated,

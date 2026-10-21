@@ -153,10 +153,14 @@ func _place(p: Player, i: int) -> void:
 	p.facing = Vector2.RIGHT
 
 
+func _ammo_max(p: Player) -> float:
+	return AMMO_MAX + float(game.run.skill_level(p.crew_id, "tireur"))
+
+
 func _s(p: Player) -> Dictionary:
 	if not st.has(p.crew_id):
 		st[p.crew_id] = {"revive": 0.0, "down_t": 0.0, "inv": 0.0, "roll": 0.0, "roll_dir": Vector2.RIGHT, "roll_cd": 0.0,
-			"swing_cd": 0.0, "ammo": AMMO_MAX, "shoot_cd": 0.0, "edge_t": 0.0, "stuck": 0.0}
+			"swing_cd": 0.0, "ammo": AMMO_MAX, "kills": 0, "shots": 0, "revives": 0, "chests": 0, "absent": 0.0, "absent_cd": randf_range(8.0, 20.0), "shoot_cd": 0.0, "edge_t": 0.0, "stuck": 0.0}
 	return st[p.crew_id]
 
 
@@ -195,7 +199,7 @@ func hints_for(p: Player) -> Dictionary:
 		return {3: "Changer"}
 	var s := _s(p)
 	var n := int(floor(float(s["ammo"])))
-	var h := {0: "Frapper", 1: "Tirer " + "●".repeat(n) + "○".repeat(int(AMMO_MAX) - n)}
+	var h := {0: "Frapper", 1: "Tirer " + "●".repeat(n) + "○".repeat(int(_ammo_max(p)) - n)}
 	if float(s["roll_cd"]) <= 0.0:
 		h[2] = "Roulade"
 	return h
@@ -250,9 +254,18 @@ func _update_member(p: Player, delta: float) -> void:
 	for k in ["inv", "roll", "roll_cd", "swing_cd", "shoot_cd"]:
 		s[k] = maxf(0.0, float(s[k]) - delta)
 	p.blink = float(s["inv"])
-	s["ammo"] = minf(AMMO_MAX, float(s["ammo"]) + AMMO_REGEN * delta)
+	s["ammo"] = minf(_ammo_max(p), float(s["ammo"]) + AMMO_REGEN * delta)
 	if p.downed:
 		s["down_t"] = float(s["down_t"]) + delta
+		return
+	if game.run.madness >= 3 and state == "fight":
+		s["absent_cd"] = float(s["absent_cd"]) - delta
+		if float(s["absent_cd"]) <= 0.0:
+			s["absent_cd"] = randf_range(20.0, 32.0)
+			s["absent"] = 0.8
+			floaters.append({"pos": p.position + Vector2(0, -34), "text": "…", "col": Art.CORRUPT2, "life": 0.9})
+	if float(s["absent"]) > 0.0:
+		s["absent"] = float(s["absent"]) - delta
 		return
 	if p.is_free():
 		_ai(p, s, delta)
@@ -356,11 +369,11 @@ func _leash(p: Player, s: Dictionary, delta: float) -> void:
 # ---------------------------------------------------------------- attaques
 
 func _swing(p: Player, s: Dictionary, cd_mult: float) -> void:
-	var reach := SWING_REACH * (1.25 if p.species == "colosse" else 1.0)
+	var reach: float = SWING_REACH * (1.25 if p.species == "colosse" else 1.0) * (1.0 + 0.08 * game.run.skill_level(p.crew_id, "bretteur"))
 	var near := _nearest_foe(p.position, reach + 26.0)
 	if not near.is_empty():
 		p.facing = ((near["pos"] as Vector2) - p.position).normalized()   # petite aide : on se tourne vers l'ennemi
-	s["swing_cd"] = SWING_COOLDOWN * cd_mult
+	s["swing_cd"] = SWING_COOLDOWN * cd_mult * (1.0 - 0.06 * game.run.madness)
 	game.sfx.play("coup", randf_range(0.92, 1.12))
 	var dir: Vector2 = p.facing
 	slashes.append({"pos": p.position, "dir": dir, "life": 0.2, "reach": reach, "col": p.color})
@@ -399,6 +412,7 @@ func _shoot(p: Player, s: Dictionary, cd_mult: float) -> void:
 		dir = ((best["pos"] as Vector2) - p.position).normalized()
 		p.facing = dir
 	s["ammo"] = float(s["ammo"]) - 1.0
+	s["shots"] = int(s["shots"]) + 1
 	s["shoot_cd"] = SHOOT_COOLDOWN * cd_mult
 	game.sfx.play("tir", randf_range(0.95, 1.08), -2.0)
 	bullets.append({"pos": p.position + dir * (p.radius() + 6.0), "vel": dir * BULLET_SPEED, "friendly": true, "life": 1.1, "owner": p.crew_id})
@@ -415,6 +429,8 @@ func _damage_foe(f: Dictionary, by: Player) -> void:
 		return
 	foes.erase(f)
 	kills += 1
+	if by != null:
+		_s(by)["kills"] = int(_s(by)["kills"]) + 1
 	combo += 1
 	combo_t = COMBO_WINDOW
 	best_combo = maxi(best_combo, combo)
@@ -423,6 +439,7 @@ func _damage_foe(f: Dictionary, by: Player) -> void:
 	game.sfx.play("mort", randf_range(0.9, 1.1))
 	if combo >= 6:
 		game.quips.react("serie", by)
+		game.quips.react("folie", by)
 	if combo >= 2:
 		game.sfx.play("enchainement", pow(2.0, float(mini(combo - 2, 8)) / 6.0), -3.0)
 	_burst(f["pos"], 14, [Art.GOLD, Art.IVORY, NEON_PINK, NEON_CYAN], 220.0)
@@ -505,6 +522,7 @@ func _revive(delta: float) -> void:
 			if no_revive or h == d or h.downed or h.position.distance_to(d.position) > REVIVE_RANGE:
 				continue
 			var k := 1.0 / REVIVE_TIME
+			k *= 1.0 + 0.3 * game.run.skill_level(h.crew_id, "infirmier")
 			if h.species == "humain":
 				k *= 2.0
 			if h.is_free():
@@ -516,6 +534,9 @@ func _revive(delta: float) -> void:
 			s["revive"] = maxf(0.0, float(s["revive"]) - delta * 0.4)
 		d.revive_frac = float(s["revive"])
 		if float(s["revive"]) >= 1.0:
+			for h2: Player in game.crew:
+				if h2 != d and not h2.downed and h2.position.distance_to(d.position) <= REVIVE_RANGE:
+					_s(h2)["revives"] = int(_s(h2)["revives"]) + 1
 			_stand_up(d, d.position)
 		elif float(s["down_t"]) > RESPAWN_AFTER:
 			var ally := _nearest_member(d.position)
@@ -759,7 +780,8 @@ func _update_chests() -> void:
 		for q: Player in game.crew:
 			if not q.downed and q.position.distance_to(c["pos"]) < 44.0:
 				c["open"] = true
-				c["scrap"] = int(round(float(c["scrap"]) * game.run.loot_mult()))
+				c["scrap"] = int(round(float(c["scrap"]) * game.run.loot_mult() * (1.0 + 0.12 * game.run.skill_level(q.crew_id, "roublard"))))
+				_s(q)["chests"] = int(_s(q)["chests"]) + 1
 				loot += int(c["scrap"])
 				score += 50
 				game.sfx.play("gros_coffre" if bool(c["big"]) else "coffre")
@@ -782,6 +804,26 @@ func _check_end() -> void:
 		_end(false)
 
 
+## Étude : chacun apprend ce qu'il a pratiqué. Le rôle le plus joué (en proportion d'un seuil) donne un niveau de compétence.
+func _study() -> Array:
+	var run: RunState = game.run
+	var out: Array = []
+	for p: Player in game.crew:
+		var s := _s(p)
+		var cand := {"bretteur": float(s["kills"]) / 4.0, "tireur": float(s["shots"]) / 6.0,
+			"infirmier": float(s["revives"]) / 1.0, "roublard": float(s["chests"]) / 1.0}
+		var best := ""
+		var best_v := 0.99
+		for k in cand:
+			if float(cand[k]) > best_v:
+				best_v = float(cand[k])
+				best = k
+		if best != "":
+			var lvl := run.add_skill(p.crew_id, best)
+			out.append("%s : %s %s" % [p.player_name, RunState.SKILLS[best], "I".repeat(lvl)])
+	return out
+
+
 func _end(won: bool) -> void:
 	var run: RunState = game.run
 	state = "won" if won else "lost"
@@ -793,11 +835,17 @@ func _end(won: bool) -> void:
 		if downs == 0:
 			bonus += 3
 		run.apply({"scrap": loot + bonus})
+		var studied := _study()
+		if layout_id == "epave":
+			run.apply({"folie": 1})
+			game.toast_all("L'épave vous a regardés… (folie +1)")
 		run.stats["abordages"] = int(run.stats.get("abordages", 0)) + 1
 		result_title = VICTORIES.get(layout_id, "Butin récupéré !")
 		result_lines = [["Ennemis vaincus", str(kills)], ["Meilleur enchaînement", "×%d%s" % [best_combo, "   (+3)" if best_combo >= 5 else ""]],
 			["Clonages en cryo", str(clonings)], ["Chutes de l'équipage", "%d%s" % [downs, "   (+3)" if downs == 0 else ""]], ["Butin", "+%d ferraille" % (loot + bonus)],
 			["Score", Art.num(score)]]
+		if not studied.is_empty():
+			result_lines.append(["Études", ", ".join(studied)])
 		game.sfx.play("victoire")
 		game.quips.react("victoire", null, true)
 		game.toast_all("Abordage réussi ! +%d ferraille" % (loot + bonus))
@@ -949,9 +997,9 @@ func _update_effects(delta: float) -> void:
 func debug_info(_p: Player) -> Dictionary:
 	return {"state": state, "layout_id": layout_id, "foes": foes.size(), "locked": locked.map(func(l): return [l["door"]["a"], l["door"]["b"], l["left"]]), "chests_open": chests.filter(func(c): return c["open"]).size(),
 		"chests": chests.size(), "cam_x": cam.x, "cam_y": cam.y, "world_w": world.size.x, "kills": kills, "best_combo": best_combo, "loot": loot,
-		"downs": downs, "clonings": clonings, "blocked": [blocked.x, blocked.y], "blocked_t": blocked_t, "laggard": laggard.crew_id if laggard else 0, "score": score,
+		"skills": game.run.skills, "madness": game.run.madness, "downs": downs, "clonings": clonings, "blocked": [blocked.x, blocked.y], "blocked_t": blocked_t, "laggard": laggard.crew_id if laggard else 0, "score": score,
 		"members": game.crew.map(func(c): return {"id": c.crew_id, "x": c.position.x, "y": c.position.y, "downed": c.downed, "free": c.is_free(),
-			"revive": c.revive_frac, "clone_gen": c.clone_gen, "edge_t": snappedf(float(_s(c)["edge_t"]), 0.01)}),
+			"ammo_max": _ammo_max(c), "revive": c.revive_frac, "clone_gen": c.clone_gen, "edge_t": snappedf(float(_s(c)["edge_t"]), 0.01)}),
 		"foe_list": foes.map(func(f): return {"type": f["type"], "x": f["pos"].x, "y": f["pos"].y, "aware": f["aware"], "state": f["state"]}),
 		"rooms": layout.rooms.map(func(r): return {"id": r["id"], "x": (r["rect"] as Rect2).get_center().x, "y": (r["rect"] as Rect2).get_center().y})}
 
@@ -975,6 +1023,10 @@ func debug_command(p: Player, msg: Dictionary) -> void:
 			state = "fight"
 		"freeze":
 			frozen = bool(msg.get("on", true))
+		"tally":
+			var q3 := _member_by_id(int(msg.get("id", p.crew_id)))
+			if q3 != null:
+				_s(q3)[str(msg.get("key", "kills"))] = int(msg.get("value", 0))
 		"no_revive":
 			no_revive = bool(msg.get("on", true))
 		"no_locks":
@@ -1148,7 +1200,7 @@ func _draw_pips(p: Player) -> void:
 	if p.downed or p.is_free():
 		return
 	var n := int(floor(float(_s(p)["ammo"])))
-	for i in int(AMMO_MAX):
+	for i in int(_ammo_max(p)):
 		draw_circle(p.position + Vector2((i - 1) * 11, -p.radius() - 16), 3.5, NEON_CYAN if i < n else Color(NEON_CYAN, 0.18))
 
 

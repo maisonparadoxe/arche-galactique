@@ -167,7 +167,8 @@
       "text": "Le chant se fait plus fort, les écrans grésillent, la coque gémit. Quelque chose vous a remarqué.",
       "effects": {
        "hull": -4,
-       "fuel": 1
+       "fuel": 1,
+       "folie": 1
       }
      }
     ]
@@ -340,7 +341,8 @@
       "text": "L'équipage repart reposé, les mains pleines de graines pour le nouveau monde.",
       "effects": {
        "hull": 6,
-       "colons": 50
+       "colons": 50,
+       "folie": -1
       }
      }
     ]

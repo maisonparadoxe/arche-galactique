@@ -97,6 +97,11 @@ Tout l'équipage descend du vaisseau et nettoie un niveau à pied, vu de dessus,
 - **Butin.** Coffres dans les salles (traversés = ouverts), gros coffre au fond, bonus du capitaine. Enchaîner des kills (×2, ×3…) fait grimper le score ; un enchaînement de 5 et un équipage sans chute donnent chacun +3 ferraille.
 - **Équilibrage.** Le nombre d'ennemis suit la taille de l'équipage et la difficulté ; leurs préavis s'allongent en Découverte. Niveaux, ennemis et coffres sont dans `ShipData.BOARDINGS` et `BOARDING_FOES` : ajouter une île ou un galion, c'est ajouter des salles à cet endroit.
 
+### Folie, études et compétences
+
+- **Folie** (de 0 « Lucides » à 3 « Visionnaires », affichée dans le bandeau) : l'Indicible regarde l'équipage. Elle monte en vainquant une épave corrompue, en affrontant l'Indicible, ou par certains événements (la nébuleuse qui chante). Chaque niveau accélère les coups de -6 %, et les équipiers lâchent des répliques inquiétantes. Au niveau 3, chacun a de brèves « absences » (0,8 s). On l'apaise au jardin suspendu ou avec la **Tisane apaisante** (8 ferrailles).
+- **Études** : à chaque abordage réussi, chaque membre apprend de ce qu'il a pratiqué : coups tués → **Bretteur** (allonge +8 % par niveau), tirs → **Tireur** (+1 munition), relèves → **Infirmier** (relève +30 %), coffres → **Roublard** (butin +12 %). Jusqu'au niveau 3, rien à choisir : jouer un rôle suffit. Le bilan indique qui a appris quoi. Commandes de debug : `madness`, `tally`.
+
 ### Cryo et clones
 
 Un membre à terre que personne ne relève en 14 s est **reclôné par la cryo** : il se relève près d'un équipier, mais « fatigué » : -7 % de vitesse par clonage (jusqu'à -35 %), pour le reste de l'expédition. Il est marqué « clone I, II… » au-dessus de sa tête. Se relever les uns les autres évite le malus. La boutique propose alors la **Cuve de jouvence** (9 ferrailles) qui repose tous les clones. Le nombre de clonages figure dans le bilan d'abordage. Commande de debug : `no_revive`.

@@ -22,6 +22,8 @@ func enter(_args: Dictionary) -> void:
 	]
 	specials.shuffle()
 	items.append_array(specials.slice(0, 2))
+	if game.run.madness > 0:
+		items.append({"id": "tisane", "label": "Tisane apaisante", "desc": "Apaise l'équipage : folie -1", "price": 8, "effects": {"folie": -1}, "stock": 1})
 	if game.run.clone_total() > 0:
 		items.append({"id": "cuve", "label": "Cuve de jouvence", "desc": "Repose tous les clones fatigués de la cryo", "price": 9, "effects": {"uncloning": true}, "stock": 1})
 	# la réputation change les prix
