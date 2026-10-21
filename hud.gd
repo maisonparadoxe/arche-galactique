@@ -18,3 +18,5 @@ static func draw(ci: CanvasItem, run: RunState, y := 18.0, x := 40.0) -> void:
 		var col := Art.DANGER if item[0] == "carburant" and run.fuel == 0 else Art.IVORY
 		Art.text(ci, Vector2(cx + 26, y + 22), s, 17, col)
 		cx += 44 + Art.font().get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+	Art.icon(ci, "reputation", Vector2(cx + 10, y + 16))
+	Art.text(ci, Vector2(cx + 26, y + 22), RunState.renown_title(run.renown), 15, RunState.renown_color(run.renown))

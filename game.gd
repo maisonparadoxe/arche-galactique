@@ -408,6 +408,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 		match str(msg.get("cmd", "")):
 			"shot": _shot(str(msg.get("path", "user://shot.png")))
 			"goto": goto(str(msg.get("scene", "academie")), msg.get("args", {}))
+			"rep": if run: run.renown = clampi(int(msg.get("value", 0)), -10, 10)
 			_: scene.debug_command(p, msg)
 	var info := {"t": "dbg", "scene": scene_name, "x": p.position.x, "y": p.position.y, "seated": p.seated,
 		"carrying": p.carrying, "medals": people[id]["medals"], "me": p.crew_id, "me_name": p.player_name,
@@ -415,7 +416,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 			"x": c.position.x, "y": c.position.y, "avatar": c.owner_token != ""})}
 	if run:
 		info["run"] = {"ship": run.ship_id, "hull": run.hull, "hull_max": run.hull_max, "fuel": run.fuel, "scrap": run.scrap,
-			"colons": run.colons, "node": run.current, "difficulty": run.difficulty, "layers": run.layers, "layer": run.depth(), "type": run.node(run.current)["type"],
+			"colons": run.colons, "renown": run.renown, "node": run.current, "difficulty": run.difficulty, "layers": run.layers, "layer": run.depth(), "type": run.node(run.current)["type"],
 			"weapons": run.weapons, "shields": run.shields, "engines": run.engines, "victory": run.victory, "ended": run.ended}
 	info.merge(scene.debug_info(p), true)
 	net.send(id, info)

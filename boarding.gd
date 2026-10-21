@@ -741,6 +741,7 @@ func _update_chests() -> void:
 		for q: Player in game.crew:
 			if not q.downed and q.position.distance_to(c["pos"]) < 44.0:
 				c["open"] = true
+				c["scrap"] = int(round(float(c["scrap"]) * game.run.loot_mult()))
 				loot += int(c["scrap"])
 				score += 50
 				game.sfx.play("gros_coffre" if bool(c["big"]) else "coffre")

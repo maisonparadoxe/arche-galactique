@@ -27,6 +27,7 @@ var seen_events: Array = []
 var stats := {"jumps": 0, "combats": 0, "events": 0, "scrap_earned": 0}
 var victory := false
 var ended := false
+var renown := 0                # réputation, de -10 (fléau des mers) à +10 (corsaire exemplaire)
 
 
 static func create(id: String, difficulty_id := "normal") -> RunState:
@@ -66,9 +67,53 @@ func add_scrap(n: int) -> void:
 		stats["scrap_earned"] += n
 
 
+func add_renown(n: int) -> void:
+	renown = clampi(renown + n, -10, 10)
+
+
+static func renown_title(r: int) -> String:
+	if r >= 7:
+		return "Corsaire exemplaire"
+	if r >= 3:
+		return "Corsaire estimé"
+	if r >= -2:
+		return "Corsaire sans histoire"
+	if r >= -6:
+		return "Forban redouté"
+	return "Fléau des mers"
+
+
+static func renown_color(r: int) -> Color:
+	if r >= 3:
+		return Color("#9caf88")
+	if r <= -3:
+		return Color("#ff4d9d")
+	return Color("#f2e8d5")
+
+
+## Les ports aiment les corsaires respectés : prix de la boutique de -4 % par point de réputation (de 0,7 à 1,3).
+func price_mult() -> float:
+	return clampf(1.0 - 0.04 * renown, 0.7, 1.3)
+
+
+## La peur délie les coffres : les mauvaises réputations raflent davantage.
+func loot_mult() -> float:
+	return 1.0 + 0.04 * maxi(-renown, 0)
+
+
+## Les colons font confiance à ceux dont on dit du bien.
+func colon_mult() -> float:
+	return 1.0 + 0.02 * renown
+
+
 ## Applique les effets d'un événement ou d'une récompense. Retourne une ligne de résumé.
 func apply(effects: Dictionary) -> String:
 	var parts: Array = []
+	if effects.has("rep"):
+		var before := renown
+		add_renown(int(effects["rep"]))
+		if renown != before:
+			parts.append("réputation %+d" % (renown - before))
 	if effects.has("scrap"):
 		add_scrap(int(effects["scrap"]))
 		parts.append("%+d ferraille" % int(effects["scrap"]))

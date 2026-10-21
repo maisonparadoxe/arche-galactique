@@ -21,6 +21,10 @@ func enter(_args: Dictionary) -> void:
 	]
 	specials.shuffle()
 	items.append_array(specials.slice(0, 2))
+	# la réputation change les prix
+	var mult: float = game.run.price_mult()
+	for it in items:
+		it["price"] = maxi(1, int(round(float(it["price"]) * mult)))
 	_new_round()
 
 
@@ -39,6 +43,10 @@ func _new_round() -> void:
 			"disabled": too_dear or full})
 	opts.append({"id": "partir", "label": "Reprendre la route", "desc": "Quitter la boutique"})
 	var text := "Ferraille disponible : %d" % run.scrap
+	if run.renown >= 3:
+		text += " · le colporteur vous fait un prix, « %s »" % RunState.renown_title(run.renown).to_lower()
+	elif run.renown <= -3:
+		text += " · le colporteur majore ses prix, « %s »" % RunState.renown_title(run.renown).to_lower()
 	if last_bought != "":
 		text = "Acheté : %s. " % last_bought + text
 	start_vote("Boutique du Colporteur", text, opts, VOTE_SECONDS, "partir")

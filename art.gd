@@ -174,6 +174,9 @@ static func icon(ci: CanvasItem, kind: String, c: Vector2, s := 1.0) -> void:
 		"colons":
 			ci.draw_circle(c + Vector2(0, -4) * s, 4 * s, IVORY)
 			ci.draw_arc(c + Vector2(0, 8) * s, 7 * s, PI, TAU, 12, IVORY, 3.0 * s)
+		"reputation":
+			ci.draw_line(c + Vector2(-6, 9) * s, c + Vector2(-6, -9) * s, IVORY, 2.0 * s)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-5, -9) * s, c + Vector2(9, -4) * s, c + Vector2(-5, 1) * s]), GOLD)
 		"bouclier":
 			ci.draw_arc(c, 8 * s, 0, TAU, 24, SHIELD, 2.5 * s)
 			ci.draw_circle(c, 3 * s, Color(SHIELD, 0.6))

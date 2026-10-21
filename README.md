@@ -95,6 +95,16 @@ Tout l'équipage descend du vaisseau et nettoie un niveau à pied, vu de dessus,
 - **Butin.** Coffres dans les salles (traversés = ouverts), gros coffre au fond, bonus du capitaine. Enchaîner des kills (×2, ×3…) fait grimper le score ; un enchaînement de 5 et un équipage sans chute donnent chacun +3 ferraille.
 - **Équilibrage.** Le nombre d'ennemis suit la taille de l'équipage et la difficulté ; leurs préavis s'allongent en Découverte. Niveaux, ennemis et coffres sont dans `ShipData.BOARDINGS` et `BOARDING_FOES` : ajouter une île ou un galion, c'est ajouter des salles à cet endroit.
 
+### Réputation et dilemmes
+
+L'équipage a une **réputation** de -10 (« Fléau des mers ») à +10 (« Corsaire exemplaire »), affichée dans le bandeau du haut.
+- Boutique : prix de -4 % par point de réputation (de 0,7 à 1,3).
+- Abordages : une mauvaise réputation rapporte plus de butin (+4 % par point négatif).
+- Colons sauvés : +2 % par point de réputation.
+- Événements : certains n'apparaissent qu'à partir d'une réputation donnée (`when`), certains choix exigent un titre (`requires`).
+
+Le nœud « Navire marchand » ouvre un dilemme (`convoi_*` dans `data/events.json`) : piller, escorter, négocier… Les effets `rep` et `abordage` s'y ajoutent aux effets habituels. Commande de debug : `rep`.
+
 ### Événements, haltes, boutique
 
 - Les **événements** et **haltes** sont dans `data/events.json` : texte, choix, conséquences aléatoires pondérées (ferraille, carburant, coque, colons, améliorations, combat). On peut en ajouter sans toucher au code.

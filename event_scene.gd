@@ -13,6 +13,7 @@ var phase := "choix"        # choix → resultat
 var outcome_text := ""
 var outcome_summary := ""
 var pending_combat := ""
+var pending_boarding := ""
 
 
 static func all_events() -> Array:
@@ -29,9 +30,9 @@ func enter(args: Dictionary) -> void:
 	var run: RunState = game.run
 	var kind: String = args.get("kind", "evenement")
 	var forced: String = args.get("id", "")
-	var pool := all_events().filter(func(e): return e["kind"] == kind and not (e["id"] in run.seen_events))
+	var pool := all_events().filter(func(e): return e["kind"] == kind and not (e["id"] in run.seen_events) and _eligible(e))
 	if pool.is_empty():
-		pool = all_events().filter(func(e): return e["kind"] == kind)
+		pool = all_events().filter(func(e): return e["kind"] == kind and _eligible(e))
 	event = pool.pick_random()
 	for e in all_events():
 		if e["id"] == forced:
@@ -42,9 +43,30 @@ func enter(args: Dictionary) -> void:
 	for i in event["choices"].size():
 		var c: Dictionary = event["choices"][i]
 		var ok := _affordable(c.get("cost", {}))
-		opts.append({"id": str(i), "label": c["label"], "disabled": not ok,
-			"desc": "" if ok else "Pas assez de ressources"})
+		var meets := _meets(c.get("requires", {}))
+		var why := ""
+		if not ok:
+			why = "Pas assez de ressources"
+		elif not meets:
+			why = "Réputation : « %s » requis" % _required_title(c["requires"])
+		opts.append({"id": str(i), "label": c["label"], "disabled": not (ok and meets), "desc": why})
 	start_vote(event["title"], event["text"], opts, CHOICE_SECONDS, _first_enabled(opts))
+
+
+## Un événement n'apparaît que si la réputation correspond (clé « when »).
+func _eligible(e: Dictionary) -> bool:
+	return _meets(e.get("when", {}))
+
+
+func _meets(cond: Dictionary) -> bool:
+	var r: int = game.run.renown
+	return r >= int(cond.get("rep_min", -99)) and r <= int(cond.get("rep_max", 99))
+
+
+func _required_title(cond: Dictionary) -> String:
+	if cond.has("rep_min"):
+		return RunState.renown_title(int(cond["rep_min"]))
+	return RunState.renown_title(int(cond.get("rep_max", 0)))
 
 
 func _affordable(cost: Dictionary) -> bool:
@@ -66,10 +88,12 @@ func on_vote_result(id: String) -> void:
 		var effects: Dictionary = (outcome.get("effects", {}) as Dictionary).duplicate()
 		pending_combat = effects.get("combat", "")
 		effects.erase("combat")
+		pending_boarding = effects.get("abordage", "")
+		effects.erase("abordage")
 		outcome_text = outcome["text"]
 		outcome_summary = game.run.apply(effects)
 		phase = "resultat"
-		var label := "Au combat !" if pending_combat != "" else "Continuer"
+		var label := "Au combat !" if pending_combat != "" else ("À l'abordage !" if pending_boarding != "" else "Continuer")
 		var text := outcome_text + ("\n\n" + outcome_summary if outcome_summary != "" else "")
 		start_vote(event["title"], text, [{"id": "ok", "label": label}], READ_SECONDS, "ok")
 	else:
@@ -77,6 +101,8 @@ func on_vote_result(id: String) -> void:
 			game.end_run(false)
 		elif pending_combat != "":
 			game.goto("combat", {"enemy": pending_combat})
+		elif pending_boarding != "":
+			game.goto("abordage", {"layout": pending_boarding})
 		else:
 			game.node_done()
 
@@ -129,4 +155,6 @@ func _draw() -> void:
 			Art.title(self, Vector2(card.position.x, y), outcome_summary, 24, Art.GOLD, HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
 		if pending_combat != "":
 			Art.title(self, Vector2(card.position.x, y + 50), "Aux postes de combat !", 28, Art.DANGER, HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
+		elif pending_boarding != "":
+			Art.title(self, Vector2(card.position.x, y + 50), "Les grappins sont lancés !", 28, Art.NEON_PINK_ICON, HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
 	draw_vote_footer(674)

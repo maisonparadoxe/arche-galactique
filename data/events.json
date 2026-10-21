@@ -1,160 +1,700 @@
 [
-  {
-    "id": "signal_detresse",
-    "kind": "evenement",
-    "title": "Un signal de détresse",
-    "text": "Un appel répété en boucle, sur une fréquence humaine. « Ici le cargo Ophélia, moteurs morts, quinze survivants. » Personne ne répond depuis des jours. Dans une galaxie où se faire remarquer peut coûter cher, faut-il vraiment répondre ?",
-    "choices": [
-      {"label": "Répondre à l'appel", "outcomes": [
-        {"weight": 3, "text": "Les naufragés sont bien réels. Ils rejoignent l'arche avec leurs maigres réserves.", "effects": {"colons": 15, "scrap": 8, "fuel": 1}},
-        {"weight": 2, "text": "C'était un leurre. Un corsaire surgit de l'ombre de l'astéroïde !", "effects": {"combat": "corsaire"}}
-      ]},
-      {"label": "Garder le silence", "outcomes": [
-        {"weight": 1, "text": "Vous coupez la radio. Le message continue de tourner, de plus en plus loin derrière vous. Personne n'en parle à bord.", "effects": {}}
-      ]}
+ {
+  "id": "signal_detresse",
+  "kind": "evenement",
+  "title": "Un signal de détresse",
+  "text": "Un appel répété en boucle, sur une fréquence humaine. « Ici le cargo Ophélia, moteurs morts, quinze survivants. » Personne ne répond depuis des jours. Dans une galaxie où se faire remarquer peut coûter cher, faut-il vraiment répondre ?",
+  "choices": [
+   {
+    "label": "Répondre à l'appel",
+    "outcomes": [
+     {
+      "weight": 3,
+      "text": "Les naufragés sont bien réels. Ils rejoignent l'arche avec leurs maigres réserves.",
+      "effects": {
+       "colons": 15,
+       "scrap": 8,
+       "fuel": 1,
+       "rep": 1
+      }
+     },
+     {
+      "weight": 2,
+      "text": "C'était un leurre. Un corsaire surgit de l'ombre de l'astéroïde !",
+      "effects": {
+       "combat": "corsaire"
+      }
+     }
     ]
+   },
+   {
+    "label": "Garder le silence",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Vous coupez la radio. Le message continue de tourner, de plus en plus loin derrière vous. Personne n'en parle à bord.",
+      "effects": {
+       "rep": -1
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "epave_nautile",
+  "kind": "evenement",
+  "title": "L'épave sous-marine",
+  "text": "Une coque ronde, rivetée, couverte de hublots, dérive dans le vide. On se croirait dans Vingt mille lieues sous les mers. Les soutes semblent intactes.",
+  "choices": [
+   {
+    "label": "Fouiller l'épave",
+    "outcomes": [
+     {
+      "weight": 3,
+      "text": "Les soutes regorgent de pièces de cuivre et de laiton. Le vieux capitaine avait bon goût.",
+      "effects": {
+       "scrap": 18
+      }
+     },
+     {
+      "weight": 1,
+      "text": "Une poche de gaz s'enflamme au passage de l'équipe. On repart vite, les bras à moitié vides.",
+      "effects": {
+       "scrap": 6,
+       "hull": -4
+      }
+     }
+    ]
+   },
+   {
+    "label": "Passer son chemin",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "L'épave s'éloigne, ses hublots comme des yeux fermés.",
+      "effects": {}
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "marchand_ambulant",
+  "kind": "evenement",
+  "title": "Le colporteur des étoiles",
+  "text": "Un petit vaisseau couvert de lanternes s'approche. Son pilote, emmitouflé dans dix écharpes, propose un échange : du carburant contre de la ferraille.",
+  "choices": [
+   {
+    "label": "Échanger 8 ferraille contre 3 carburant",
+    "cost": {
+     "scrap": 8
+    },
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Marché conclu. Le colporteur repart en chantonnant.",
+      "effects": {
+       "scrap": -8,
+       "fuel": 3
+      }
+     }
+    ]
+   },
+   {
+    "label": "Décliner poliment",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Il hausse les épaules et disparaît dans un nuage de lanternes.",
+      "effects": {}
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "robot_reveur",
+  "kind": "evenement",
+  "title": "L'automate à la dérive",
+  "text": "Un robot flotte, seul, les yeux mi-clos. Ses circuits tournent à vide, comme s'il dormait. On dirait un robot qui rêve, étrange, non ? Quand vous l'approchez, il murmure des plans de moteurs.",
+  "choices": [
+   {
+    "label": "L'écouter jusqu'au bout",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Ses rêves sont des schémas d'une précision folle. Vos mécaniciens améliorent les moteurs.",
+      "effects": {
+       "engines": 1
+      }
+     }
+    ]
+   },
+   {
+    "label": "Le démonter pour ses pièces",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Il ne proteste pas. Ses derniers mots sont un nombre que personne ne comprend.",
+      "effects": {
+       "scrap": 14,
+       "rep": -1
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "nebuleuse_chantante",
+  "kind": "evenement",
+  "title": "La nébuleuse qui chante",
+  "text": "Un nuage de gaz violacé barre la route. Les instruments captent un son, presque une mélodie. Traverser fera gagner du temps et permettra de récolter du gaz. Mais ce chant ne ressemble à rien de connu.",
+  "choices": [
+   {
+    "label": "Traverser la nébuleuse",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Les collecteurs se remplissent de gaz pur. Le chant s'éteint derrière vous.",
+      "effects": {
+       "fuel": 2
+      }
+     },
+     {
+      "weight": 1,
+      "text": "Le chant se fait plus fort, les écrans grésillent, la coque gémit. Quelque chose vous a remarqué.",
+      "effects": {
+       "hull": -4,
+       "fuel": 1
+      }
+     }
+    ]
+   },
+   {
+    "label": "Contourner",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Le détour coûte du carburant, mais personne ne regrette le silence.",
+      "effects": {
+       "fuel": -1
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "station_eteinte",
+  "kind": "evenement",
+  "title": "La station éteinte",
+  "text": "Une station minière, totalement plongée dans le noir. Plus une lumière, plus un moteur : comme si l'électricité elle-même avait disparu d'un coup. Les entrepôts sont peut-être encore pleins.",
+  "choices": [
+   {
+    "label": "Rétablir le courant",
+    "outcomes": [
+     {
+      "weight": 3,
+      "text": "Les lumières reviennent une à une. Les entrepôts sont pleins de pièces détachées.",
+      "effects": {
+       "scrap": 20
+      }
+     },
+     {
+      "weight": 2,
+      "text": "Le courant réveille autre chose. Un vaisseau corrompu se détache des quais !",
+      "effects": {
+       "combat": "corrompu"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Laisser dormir la station",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Certaines portes sont faites pour rester fermées.",
+      "effects": {}
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "colons_derive",
+  "kind": "evenement",
+  "title": "Des capsules à la dérive",
+  "text": "Des dizaines de capsules de survie, échappées d'un vaisseau-colonie perdu. Les recueillir demandera un détour et du carburant, mais ce sont autant d'humains de plus pour le nouveau monde.",
+  "choices": [
+   {
+    "label": "Les recueillir",
+    "cost": {
+     "fuel": 1
+    },
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "L'arche ouvre ses soutes. Trois cents personnes de plus regarderont le nouveau ciel.",
+      "effects": {
+       "colons": 300,
+       "fuel": -1,
+       "rep": 1
+      }
+     }
+    ]
+   },
+   {
+    "label": "Continuer la route",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Les capsules s'éloignent. Le silence à bord est pesant.",
+      "effects": {}
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "pirates_peage",
+  "kind": "evenement",
+  "title": "Le péage des corsaires",
+  "text": "Trois vaisseaux pirates bloquent un passage étroit. Leur chef exige un « droit de passage » de 12 ferraille.",
+  "choices": [
+   {
+    "label": "Payer le péage",
+    "cost": {
+     "scrap": 12
+    },
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Ils s'écartent en ricanant. L'arche passe sans encombre.",
+      "effects": {
+       "scrap": -12
+      }
+     }
+    ]
+   },
+   {
+    "label": "Forcer le passage",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Un seul pirate ose vous suivre. Il va le regretter.",
+      "effects": {
+       "combat": "corsaire",
+       "rep": -1
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "station_amie",
+  "kind": "halte",
+  "title": "Une station amie",
+  "text": "Un poste avancé de l'Académie galactique, toutes lumières allumées. Les mécaniciens vous font signe : ils peuvent faire une chose pour vous avant votre départ.",
+  "choices": [
+   {
+    "label": "Réparer la coque (+8)",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Soudures, rivets, peinture fraîche. Le vaisseau a meilleure mine.",
+      "effects": {
+       "hull": 8
+      }
+     }
+    ]
+   },
+   {
+    "label": "Faire le plein (+3 carburant)",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Les réservoirs débordent presque.",
+      "effects": {
+       "fuel": 3
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "jardin_hydroponique",
+  "kind": "halte",
+  "title": "Le jardin suspendu",
+  "text": "Une serre géante en orbite, couverte de vitraux, où poussent des fleurs qu'aucun d'entre vous ne connaît. Ses jardiniers accueillent l'équipage comme de vieux amis.",
+  "choices": [
+   {
+    "label": "Se reposer au jardin (+6 coque)",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "L'équipage repart reposé, les mains pleines de graines pour le nouveau monde.",
+      "effects": {
+       "hull": 6,
+       "colons": 50
+      }
+     }
+    ]
+   },
+   {
+    "label": "Échanger des services (+12 ferraille)",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Vos mécaniciens réparent leurs pompes ; les jardiniers paient en pièces détachées.",
+      "effects": {
+       "scrap": 12
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "observatoire",
+  "kind": "halte",
+  "title": "L'observatoire abandonné",
+  "text": "Une coupole de cuivre posée sur un astéroïde. Ses lunettes pointent toutes dans la même direction : vers l'endroit d'où vous venez.",
+  "choices": [
+   {
+    "label": "Récupérer les instruments",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Lentilles, engrenages, cuivre : tout se revend.",
+      "effects": {
+       "scrap": 15
+      }
+     }
+    ]
+   },
+   {
+    "label": "Récupérer les réservoirs",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Deux réservoirs pleins, oubliés là depuis longtemps.",
+      "effects": {
+       "fuel": 2,
+       "hull": 2
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "convoi_syndicat",
+  "kind": "convoi",
+  "title": "Un convoi du Syndicat des Lanternes",
+  "text": "Six cargos ventrus avancent en file indienne, lanternes allumées, sous la garde d'une escorte fatiguée. Leurs soutes sentent la cannelle et le cuivre neuf. Votre pavillon de corsaire fait lever quelques sourcils dans la timonerie.",
+  "choices": [
+   {
+    "label": "Aborder le convoi",
+    "outcomes": [
+     {
+      "weight": 2,
+      "text": "Les grappins mordent la coque du premier cargo. À l'abordage !",
+      "effects": {
+       "rep": -2,
+       "abordage": "galion"
+      }
+     },
+     {
+      "weight": 1,
+      "text": "Une caravelle de tête se détache du convoi et vous barre la route. À l'abordage !",
+      "effects": {
+       "rep": -2,
+       "abordage": "caravelle"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Escorter le convoi jusqu'au prochain relais",
+    "outcomes": [
+     {
+      "weight": 3,
+      "text": "Trois jours de navigation paisible, un thé offert par le commodore, et une prime tout à fait rondelette.",
+      "effects": {
+       "scrap": 9,
+       "rep": 2
+      }
+     },
+     {
+      "weight": 1,
+      "text": "Des écumeurs surgissent à mi-chemin. Le commodore vous regarde avec beaucoup d'espoir.",
+      "effects": {
+       "rep": 2,
+       "combat": "corsaire"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Réclamer un péage",
+    "outcomes": [
+     {
+      "weight": 3,
+      "text": "Le commodore paie en grinçant des dents. Vous empochez, et vous ne vous faites pas que des amis.",
+      "effects": {
+       "scrap": 10,
+       "rep": -1
+      }
+     },
+     {
+      "weight": 2,
+      "text": "« Plutôt couler ! » dit le commodore. Alors coulons, ou presque. À l'abordage !",
+      "effects": {
+       "rep": -1,
+       "abordage": "caravelle"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Présenter votre lettre de recommandation",
+    "requires": {
+     "rep_min": 4
+    },
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Le commodore lit, hoche la tête, et ouvre ses réserves. « On m'avait parlé de vous en bien. » C'est rare, il l'a dit lui-même.",
+      "effects": {
+       "fuel": 3,
+       "scrap": 6,
+       "rep": 1
+      }
+     }
+    ]
+   },
+   {
+    "label": "Passer votre chemin",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Vous saluez poliment. Le convoi s'éloigne, lanternes balançantes.",
+      "effects": {}
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "convoi_pelerins",
+  "kind": "convoi",
+  "title": "Le vaisseau des pèlerins fleuris",
+  "text": "Un vaisseau tout en volutes, aux flancs sculptés de fleurs de cuivre, avance lentement vers l'arche. Ses passagers chantent le prochain ciel. Leurs soutes sont pleines d'offrandes. Personne, à bord, n'a l'air d'avoir déjà tenu une épée.",
+  "choices": [
+   {
+    "label": "Aborder les pèlerins",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Les chants se taisent d'un coup. Un malaise s'installe à bord, mais les offrandes sont lourdes.",
+      "effects": {
+       "rep": -4,
+       "abordage": "caravelle"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Les accompagner jusqu'à l'arche",
+    "outcomes": [
+     {
+      "weight": 3,
+      "text": "Une douzaine de pèlerins demandent à rejoindre Éléa. Ils apportent du sel, des graines et des chants.",
+      "effects": {
+       "rep": 3,
+       "colons": 20,
+       "scrap": 4
+      }
+     },
+     {
+      "weight": 1,
+      "text": "Un jeune pèlerin tombe amoureux du bruit des moteurs. Il restera pour les graisser, et il a de très bonnes idées.",
+      "effects": {
+       "rep": 3,
+       "colons": 8,
+       "engines": 1
+      }
+     }
+    ]
+   },
+   {
+    "label": "Les saluer et passer",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "On échange des bénédictions. Quelqu'un à bord jure que ça porte chance.",
+      "effects": {
+       "rep": 1
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "convoi_blinde",
+  "kind": "convoi",
+  "title": "Le blindé de la Compagnie du Cuivre",
+  "text": "Un cargo hérissé de plaques rivetées, flanqué de deux canonnières. Sa cargaison est « confidentielle », ce qui, en pratique, veut dire « précieuse ». Son capitaine vous observe par une meurtrière en mâchant quelque chose.",
+  "choices": [
+   {
+    "label": "Aborder le blindé",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Les canonnières tirent, les grappins volent. Ce sera du sport.",
+      "effects": {
+       "rep": -2,
+       "abordage": "galion"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Proposer vos services d'escorte",
+    "outcomes": [
+     {
+      "weight": 2,
+      "text": "La Compagnie vous engage pour une étape. Elle paie en cuivre, sans sourire.",
+      "effects": {
+       "scrap": 12,
+       "rep": 1
+      }
+     },
+     {
+      "weight": 1,
+      "text": "Une meute de corsaires flaire la cargaison. À vous de la défendre.",
+      "effects": {
+       "rep": 1,
+       "combat": "corsaire"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Rester à distance",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Le capitaine vous salue d'un hochement de menton, sans cesser de mâcher.",
+      "effects": {}
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "contrat_syndicat",
+  "kind": "evenement",
+  "title": "Un contrat honorable",
+  "when": {
+   "rep_min": 3
   },
-  {
-    "id": "epave_nautile",
-    "kind": "evenement",
-    "title": "L'épave sous-marine",
-    "text": "Une coque ronde, rivetée, couverte de hublots, dérive dans le vide. On se croirait dans Vingt mille lieues sous les mers. Les soutes semblent intactes.",
-    "choices": [
-      {"label": "Fouiller l'épave", "outcomes": [
-        {"weight": 3, "text": "Les soutes regorgent de pièces de cuivre et de laiton. Le vieux capitaine avait bon goût.", "effects": {"scrap": 18}},
-        {"weight": 1, "text": "Une poche de gaz s'enflamme au passage de l'équipe. On repart vite, les bras à moitié vides.", "effects": {"scrap": 6, "hull": -4}}
-      ]},
-      {"label": "Passer son chemin", "outcomes": [
-        {"weight": 1, "text": "L'épave s'éloigne, ses hublots comme des yeux fermés.", "effects": {}}
-      ]}
+  "text": "Un messager du Syndicat des Lanternes, extrêmement poli, vous tend un pli cacheté. On parle de vous dans les ports comme de « ce corsaire dont on peut dire du bien ». C'est inhabituel, et il tient à le souligner.",
+  "choices": [
+   {
+    "label": "Accepter le contrat",
+    "outcomes": [
+     {
+      "weight": 3,
+      "text": "Une mission facile, bien payée, et un déjeuner en prime. La vie de corsaire estimé a du bon.",
+      "effects": {
+       "scrap": 15,
+       "fuel": 1,
+       "rep": 1
+      }
+     },
+     {
+      "weight": 1,
+      "text": "Le contrat comportait un tout petit paragraphe en bas de page : une escorte… contre un écumeur.",
+      "effects": {
+       "scrap": 10,
+       "combat": "corsaire"
+      }
+     }
     ]
+   },
+   {
+    "label": "Décliner avec élégance",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Le messager s'incline, ravi d'avoir été refusé aussi bien.",
+      "effects": {
+       "rep": 1
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "chasseur_de_primes",
+  "kind": "evenement",
+  "title": "Le chasseur de primes",
+  "when": {
+   "rep_max": -3
   },
-  {
-    "id": "marchand_ambulant",
-    "kind": "evenement",
-    "title": "Le colporteur des étoiles",
-    "text": "Un petit vaisseau couvert de lanternes s'approche. Son pilote, emmitouflé dans dix écharpes, propose un échange : du carburant contre de la ferraille.",
-    "choices": [
-      {"label": "Échanger 8 ferraille contre 3 carburant", "cost": {"scrap": 8}, "outcomes": [
-        {"weight": 1, "text": "Marché conclu. Le colporteur repart en chantonnant.", "effects": {"scrap": -8, "fuel": 3}}
-      ]},
-      {"label": "Décliner poliment", "outcomes": [
-        {"weight": 1, "text": "Il hausse les épaules et disparaît dans un nuage de lanternes.", "effects": {}}
-      ]}
+  "text": "Un petit vaisseau noir s'accroche à votre sillage. Son pilote est courtois : il a lu votre avis de recherche et l'a trouvé plutôt flatteur. Il hésite encore entre vous capturer et vous demander un autographe.",
+  "choices": [
+   {
+    "label": "Payer 12 ferraille pour qu'il vous oublie",
+    "cost": {
+     "scrap": 12
+    },
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Il compte les pièces, soupire, et raye votre nom de sa liste, pour cette semaine seulement.",
+      "effects": {
+       "scrap": -12
+      }
+     }
     ]
-  },
-  {
-    "id": "robot_reveur",
-    "kind": "evenement",
-    "title": "L'automate à la dérive",
-    "text": "Un robot flotte, seul, les yeux mi-clos. Ses circuits tournent à vide, comme s'il dormait. On dirait un robot qui rêve, étrange, non ? Quand vous l'approchez, il murmure des plans de moteurs.",
-    "choices": [
-      {"label": "L'écouter jusqu'au bout", "outcomes": [
-        {"weight": 1, "text": "Ses rêves sont des schémas d'une précision folle. Vos mécaniciens améliorent les moteurs.", "effects": {"engines": 1}}
-      ]},
-      {"label": "Le démonter pour ses pièces", "outcomes": [
-        {"weight": 1, "text": "Il ne proteste pas. Ses derniers mots sont un nombre que personne ne comprend.", "effects": {"scrap": 14}}
-      ]}
+   },
+   {
+    "label": "Se battre",
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "« Je suis désolé, c'est le règlement. » Il ouvre le feu en s'excusant.",
+      "effects": {
+       "combat": "corsaire"
+      }
+     }
     ]
-  },
-  {
-    "id": "nebuleuse_chantante",
-    "kind": "evenement",
-    "title": "La nébuleuse qui chante",
-    "text": "Un nuage de gaz violacé barre la route. Les instruments captent un son, presque une mélodie. Traverser fera gagner du temps et permettra de récolter du gaz. Mais ce chant ne ressemble à rien de connu.",
-    "choices": [
-      {"label": "Traverser la nébuleuse", "outcomes": [
-        {"weight": 1, "text": "Les collecteurs se remplissent de gaz pur. Le chant s'éteint derrière vous.", "effects": {"fuel": 2}},
-        {"weight": 1, "text": "Le chant se fait plus fort, les écrans grésillent, la coque gémit. Quelque chose vous a remarqué.", "effects": {"hull": -4, "fuel": 1}}
-      ]},
-      {"label": "Contourner", "outcomes": [
-        {"weight": 1, "text": "Le détour coûte du carburant, mais personne ne regrette le silence.", "effects": {"fuel": -1}}
-      ]}
+   },
+   {
+    "label": "Lui proposer de rejoindre l'équipage",
+    "requires": {
+     "rep_max": -5
+    },
+    "outcomes": [
+     {
+      "weight": 1,
+      "text": "Il fait ses comptes, constate que les primes, c'est fatigant, et signe. Son vaisseau sait très bien régler les moteurs.",
+      "effects": {
+       "engines": 1,
+       "rep": -1
+      }
+     }
     ]
-  },
-  {
-    "id": "station_eteinte",
-    "kind": "evenement",
-    "title": "La station éteinte",
-    "text": "Une station minière, totalement plongée dans le noir. Plus une lumière, plus un moteur : comme si l'électricité elle-même avait disparu d'un coup. Les entrepôts sont peut-être encore pleins.",
-    "choices": [
-      {"label": "Rétablir le courant", "outcomes": [
-        {"weight": 3, "text": "Les lumières reviennent une à une. Les entrepôts sont pleins de pièces détachées.", "effects": {"scrap": 20}},
-        {"weight": 2, "text": "Le courant réveille autre chose. Un vaisseau corrompu se détache des quais !", "effects": {"combat": "corrompu"}}
-      ]},
-      {"label": "Laisser dormir la station", "outcomes": [
-        {"weight": 1, "text": "Certaines portes sont faites pour rester fermées.", "effects": {}}
-      ]}
-    ]
-  },
-  {
-    "id": "colons_derive",
-    "kind": "evenement",
-    "title": "Des capsules à la dérive",
-    "text": "Des dizaines de capsules de survie, échappées d'un vaisseau-colonie perdu. Les recueillir demandera un détour et du carburant, mais ce sont autant d'humains de plus pour le nouveau monde.",
-    "choices": [
-      {"label": "Les recueillir", "cost": {"fuel": 1}, "outcomes": [
-        {"weight": 1, "text": "L'arche ouvre ses soutes. Trois cents personnes de plus regarderont le nouveau ciel.", "effects": {"colons": 300, "fuel": -1}}
-      ]},
-      {"label": "Continuer la route", "outcomes": [
-        {"weight": 1, "text": "Les capsules s'éloignent. Le silence à bord est pesant.", "effects": {}}
-      ]}
-    ]
-  },
-  {
-    "id": "pirates_peage",
-    "kind": "evenement",
-    "title": "Le péage des corsaires",
-    "text": "Trois vaisseaux pirates bloquent un passage étroit. Leur chef exige un « droit de passage » de 12 ferraille.",
-    "choices": [
-      {"label": "Payer le péage", "cost": {"scrap": 12}, "outcomes": [
-        {"weight": 1, "text": "Ils s'écartent en ricanant. L'arche passe sans encombre.", "effects": {"scrap": -12}}
-      ]},
-      {"label": "Forcer le passage", "outcomes": [
-        {"weight": 1, "text": "Un seul pirate ose vous suivre. Il va le regretter.", "effects": {"combat": "corsaire"}}
-      ]}
-    ]
-  },
-  {
-    "id": "station_amie",
-    "kind": "halte",
-    "title": "Une station amie",
-    "text": "Un poste avancé de l'Académie galactique, toutes lumières allumées. Les mécaniciens vous font signe : ils peuvent faire une chose pour vous avant votre départ.",
-    "choices": [
-      {"label": "Réparer la coque (+8)", "outcomes": [
-        {"weight": 1, "text": "Soudures, rivets, peinture fraîche. Le vaisseau a meilleure mine.", "effects": {"hull": 8}}
-      ]},
-      {"label": "Faire le plein (+3 carburant)", "outcomes": [
-        {"weight": 1, "text": "Les réservoirs débordent presque.", "effects": {"fuel": 3}}
-      ]}
-    ]
-  },
-  {
-    "id": "jardin_hydroponique",
-    "kind": "halte",
-    "title": "Le jardin suspendu",
-    "text": "Une serre géante en orbite, couverte de vitraux, où poussent des fleurs qu'aucun d'entre vous ne connaît. Ses jardiniers accueillent l'équipage comme de vieux amis.",
-    "choices": [
-      {"label": "Se reposer au jardin (+6 coque)", "outcomes": [
-        {"weight": 1, "text": "L'équipage repart reposé, les mains pleines de graines pour le nouveau monde.", "effects": {"hull": 6, "colons": 50}}
-      ]},
-      {"label": "Échanger des services (+12 ferraille)", "outcomes": [
-        {"weight": 1, "text": "Vos mécaniciens réparent leurs pompes ; les jardiniers paient en pièces détachées.", "effects": {"scrap": 12}}
-      ]}
-    ]
-  },
-  {
-    "id": "observatoire",
-    "kind": "halte",
-    "title": "L'observatoire abandonné",
-    "text": "Une coupole de cuivre posée sur un astéroïde. Ses lunettes pointent toutes dans la même direction : vers l'endroit d'où vous venez.",
-    "choices": [
-      {"label": "Récupérer les instruments", "outcomes": [
-        {"weight": 1, "text": "Lentilles, engrenages, cuivre : tout se revend.", "effects": {"scrap": 15}}
-      ]},
-      {"label": "Récupérer les réservoirs", "outcomes": [
-        {"weight": 1, "text": "Deux réservoirs pleins, oubliés là depuis longtemps.", "effects": {"fuel": 2, "hull": 2}}
-      ]}
-    ]
-  }
+   }
+  ]
+ }
 ]

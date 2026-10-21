@@ -36,7 +36,7 @@ func _describe(type: String) -> String:
 		"evenement": return "Un signal inconnu, à vos risques et périls"
 		"halte": return "Un lieu sûr pour souffler un peu"
 		"boutique": return "Un marchand : carburant, réparations, armes"
-		"abordage": return "Un navire marchand à aborder : butin, mais l'équipage se bat"
+		"abordage": return "Un convoi marchand : l'aborder, l'escorter ou passer son chemin"
 		"ile": return "Une île au trésor : des ruines, des gardiens, un coffre"
 		"epave": return "Une épave que l'Indicible a fait sienne : dangereux, mais un reliquaire au fond"
 		"boss": return "L'Indicible barre la route de l'arche"
@@ -78,7 +78,7 @@ func _arrive() -> void:
 		"boss":
 			game.goto("combat", {"enemy": "avatar"})
 		"abordage":
-			game.goto("abordage", {"layout": ["galion", "caravelle"].pick_random()})
+			game.goto("evenement", {"kind": "convoi"})
 		"ile":
 			game.goto("abordage", {"layout": "ile"})
 		"epave":

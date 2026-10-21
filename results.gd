@@ -22,7 +22,7 @@ func _summary(run: RunState) -> String:
 static func saved(run: RunState) -> int:
 	if not run.victory:
 		return 0
-	return int(run.colons * (0.7 + 0.3 * float(run.hull) / float(run.hull_max)))
+	return int(run.colons * (0.7 + 0.3 * float(run.hull) / float(run.hull_max)) * run.colon_mult())
 
 
 func on_vote_result(_id: String) -> void:
@@ -48,6 +48,7 @@ func _draw() -> void:
 		["Événements", str(run.stats["events"])],
 		["Ferraille récupérée", str(run.stats["scrap_earned"])],
 		["Coque restante", "%d / %d" % [run.hull, run.hull_max]],
+		["Réputation", "%s (%+d)" % [RunState.renown_title(run.renown), run.renown]],
 		["Colons sauvés", Art.num(saved(run))],
 	]
 	for r in rows:
