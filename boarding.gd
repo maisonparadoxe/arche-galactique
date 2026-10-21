@@ -71,6 +71,7 @@ var crowd := 1.0
 var frozen := false                   # tests : les ennemis ne bougent plus
 var depth: Dictionary = {}            # salle -> nombre de portes depuis le départ
 var locked: Array = []                # portes fermées : on ne les passe qu'une fois la salle d'avant nettoyée
+var bot := false                     # tests d'équilibrage : les membres contrôlés jouent comme un joueur correct (ils chassent)
 var no_revive := false               # tests : personne ne relève, la cryo doit s'en charger
 var locks_off := false                # tests : toutes les portes sont ouvertes
 var lock_note_t := -9.0
@@ -267,7 +268,7 @@ func _update_member(p: Player, delta: float) -> void:
 	if float(s["absent"]) > 0.0:
 		s["absent"] = float(s["absent"]) - delta
 		return
-	if p.is_free():
+	if p.is_free() or bot:
 		_ai(p, s, delta)
 	else:
 		_control(p, s, delta)
@@ -551,7 +552,8 @@ func _revive(delta: float) -> void:
 
 func _ai(p: Player, s: Dictionary, delta: float) -> void:
 	var goal := Vector2.INF
-	var foe := _nearest_foe(p.position, 260.0, true)   # un membre libre réagit aux menaces, il ne chasse pas les ennemis endormis
+	var hunt := bot and not p.is_free()
+	var foe := _nearest_foe(p.position, 1.0e9 if hunt else 260.0, not hunt)   # un membre libre réagit aux menaces, il ne chasse pas les ennemis endormis
 	if not foe.is_empty() and state == "fight" and not frozen:
 		var fp: Vector2 = foe["pos"]
 		var d := p.position.distance_to(fp)
@@ -580,7 +582,7 @@ func _ai(p: Player, s: Dictionary, delta: float) -> void:
 		var dir := wp - p.position
 		if dir.length() > 6.0:
 			dir = dir.normalized()
-			_move(p, dir * SPEED * AI_SPEED * game.run.clone_speed(p.crew_id) * delta)
+			_move(p, dir * SPEED * (1.0 if hunt else AI_SPEED) * game.run.clone_speed(p.crew_id) * delta)
 			p.facing = dir
 
 
@@ -1027,6 +1029,8 @@ func debug_command(p: Player, msg: Dictionary) -> void:
 			var q3 := _member_by_id(int(msg.get("id", p.crew_id)))
 			if q3 != null:
 				_s(q3)[str(msg.get("key", "kills"))] = int(msg.get("value", 0))
+		"bot":
+			bot = bool(msg.get("on", true))
 		"no_revive":
 			no_revive = bool(msg.get("on", true))
 		"no_locks":

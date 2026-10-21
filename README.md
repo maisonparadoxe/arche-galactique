@@ -65,7 +65,7 @@ Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux
 | Action | Comment |
 | --- | --- |
 | Viser et tirer | **A** devant le poste d'armes : la manette devient le poste d'armes. Le joystick déplace le viseur sur le vaisseau ennemi, un bouton par arme tire quand elle est chargée. Sans artilleur, les armes tirent seules, plus lentement et au hasard. |
-| Charger les canons | Chaque tir consomme un **boulet** (deux pour la torpille). La soute en renvoie un toute seule toutes les 7 s (6 au maximum, 4 au départ) ; un membre contrôlé qui passe par la **soute** prend un boulet et le livre en approchant du **poste d'armes** : +2 d'un coup, bien plus vite. Sans boulets, les canons chargés attendent. |
+| Charger les canons | Chaque tir consomme un **boulet** (deux pour la torpille). La soute en renvoie un toute seule toutes les 4 s (6 au maximum, 5 au départ) ; un membre contrôlé qui passe par la **soute** prend un boulet et le livre en approchant du **poste d'armes** : +2 d'un coup, bien plus vite. Sans boulets, les canons chargés attendent. |
 | Piloter | **A** devant la console du Pont : bouton « Virer ! » = 2,5 s d'esquive +32 % (délai 9 s). Un pilote à la barre ajoute aussi +8 % d'esquive en permanence. |
 | Machines | **A** devant la console de la coursive : on envoie l'énergie aux armes (charge ×1,5), aux boucliers (recharge ×2) ou aux moteurs (+8 % d'esquive). Le bouton « Cloisons » empêche le feu de se propager. Sans ingénieur : rien de tout ça. |
 | Éteindre un feu | Maintenir **B** près des flammes (Salamandrin ×2). Un feu abîme le système de la salle, la coque, et peut se propager. Un membre libre éteint seul les feux de sa salle. |
@@ -182,7 +182,7 @@ Tous les sons sont **générés par le jeu** (aucun fichier audio) : coups, tirs
 
 - À l'Académie et en combat de vaisseaux, les membres libres ne se déplacent pas d'eux-mêmes : c'est à toi de les placer (à l'abordage, ils suivent le groupe).
 - Abordage : quatre niveaux seulement (galion, caravelle, île, épave) ; les sons n'ont été vérifiés que sur le papier (je n'ai pas d'oreilles), à régler à l'usage.
-- Pas encore de poste ingénieur (énergie, portes) ni de poste pilote actif.
-- Pas de méta-progression sur l'arche ni de mode narratif.
+- Ingénieur : l'énergie et les cloisons anti-feu existent, mais pas de vraie gestion des portes. Le mode narratif se limite au journal de bord et à la chronique.
+- L'équilibre (boulets, folie, compétences, colonie) a été réglé par simulation, pas encore sur de vrais téléphones avec plusieurs joueurs.
 - Sur iPhone, pas de plein écran dans Safari, pas de vibration, et le mode silencieux coupe les sons.
 - Pour **exporter** le jeu, ajoute `web/*`, `fonts/*.ttf` et `data/*.json` aux « Filtres pour exporter des fichiers non-ressources ».

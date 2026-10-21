@@ -140,6 +140,8 @@ func start_run(ship_id: String, difficulty := "normal") -> void:
 
 ## Fin de l'expédition : victoire ou défaite.
 func end_run(victory: bool) -> void:
+	if run == null or run.ended:
+		return
 	run.victory = victory
 	run.ended = true
 	last_colony = colony.register(run)

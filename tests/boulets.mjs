@@ -39,7 +39,7 @@ await a.cmd({ cmd: "goto", scene: "combat", args: { enemy: "eclaireur" } });
 await waitScene(a, "combat", 4000);
 await a.cmd({ cmd: "freeze_enemy" });
 let d = await a.dbg();
-check(d.shells === 4, `la soute démarre avec ${d.shells} boulets`);
+check(d.shells === 5, `la soute démarre avec ${d.shells} boulets`);
 // ravitaillement par un porteur : soute → armes
 await tp(a, d.magazine_x, d.magazine_y);
 await sleep(300);
@@ -50,7 +50,7 @@ const armes = d.rooms.find((r) => r.system === "armes");
 await tp(a, d.console_x - 10, d.console_y);
 await sleep(300);
 d = await a.dbg();
-check(d.carrying === false && d.shells === before + 2, `livraison aux armes : ${before} → ${d.shells} boulets`);
+check(d.carrying === false && d.shells === Math.min(6, before + 2), `livraison aux armes : ${before} → ${d.shells} boulets`);
 // sans boulets, plus de tir automatique
 await tp(a, 40, 40);
 console.log(failures ? `${failures} échec(s)` : "Tout est bon.");
