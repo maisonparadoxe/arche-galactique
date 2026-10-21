@@ -315,6 +315,7 @@ func _update_locks() -> void:
 	if locked.size() < last_locks and state != "intro":
 		game.sfx.play("ouvre")
 		game.toast_all("Une porte s'ouvre !")
+		game.quips.react("porte")
 	last_locks = locked.size()
 
 
@@ -418,6 +419,8 @@ func _damage_foe(f: Dictionary, by: Player) -> void:
 	var pts := 100 * combo
 	score += pts
 	game.sfx.play("mort", randf_range(0.9, 1.1))
+	if combo >= 6:
+		game.quips.react("serie", by)
 	if combo >= 2:
 		game.sfx.play("enchainement", pow(2.0, float(mini(combo - 2, 8)) / 6.0), -3.0)
 	_burst(f["pos"], 14, [Art.GOLD, Art.IVORY, NEON_PINK, NEON_CYAN], 220.0)
@@ -444,6 +447,7 @@ func _down(q: Player) -> void:
 	s["roll"] = 0.0
 	downs += 1
 	game.sfx.play("tombe")
+	game.quips.react("tombe", q)
 	combo = 0
 	combo_t = 0.0
 	_burst(q.position, 12, [q.color, Art.IVORY], 200.0)
@@ -471,6 +475,7 @@ func _stand_up(p: Player, pos: Vector2) -> void:
 	s["revive"] = 0.0
 	s["inv"] = 1.6
 	game.sfx.play("releve")
+	game.quips.react("releve", p)
 	if not p.is_free():
 		game.net.send(p.peer_id, {"t": "sfx", "k": "releve"})
 	_burst(pos, 10, [Art.SAGE, Art.IVORY], 150.0)
@@ -745,6 +750,7 @@ func _update_chests() -> void:
 				loot += int(c["scrap"])
 				score += 50
 				game.sfx.play("gros_coffre" if bool(c["big"]) else "coffre")
+				game.quips.react("coffre", q)
 				if not q.is_free():
 					game.net.send(q.peer_id, {"t": "sfx", "k": "coffre"})
 				_burst(c["pos"], 16, [Art.GOLD, Art.IVORY, Art.COPPER], 200.0)
@@ -780,12 +786,14 @@ func _end(won: bool) -> void:
 			["Chutes de l'équipage", "%d%s" % [downs, "   (+3)" if downs == 0 else ""]], ["Butin", "+%d ferraille" % (loot + bonus)],
 			["Score", Art.num(score)]]
 		game.sfx.play("victoire")
+		game.quips.react("victoire", null, true)
 		game.toast_all("Abordage réussi ! +%d ferraille" % (loot + bonus))
 	else:
 		run.apply({"hull": -3})
 		result_title = "Repli !"
 		result_lines = [["Ennemis vaincus", str(kills)], ["Le vaisseau encaisse le feu de couverture", "-3 coque"]]
 		game.sfx.play("defaite")
+		game.quips.react("defaite", null, true)
 		game.toast_all("L'équipage bat en retraite…")
 
 

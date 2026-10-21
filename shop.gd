@@ -9,6 +9,7 @@ var rounds := 0
 
 
 func enter(_args: Dictionary) -> void:
+	game.quips.react("boutique")
 	items = [
 		{"id": "carburant", "label": "Carburant ×3", "desc": "Trois sauts de plus", "price": 6, "effects": {"fuel": 3}, "stock": 3},
 		{"id": "reparation", "label": "Réparer la coque (+8)", "desc": "Soudure et rivets", "price": 8, "effects": {"hull": 8}, "stock": 3},

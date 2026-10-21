@@ -24,6 +24,7 @@ const MAX_PLAYERS := 8
 const INPUT_STALE_MS := 500
 
 const SfxScript := preload("res://sfx.gd")
+const QuipsScript := preload("res://quips.gd")
 
 const SCENES := {
 	"academie": preload("res://academy.gd"),
@@ -40,6 +41,7 @@ var net: NetServer
 var sfx                               # sons et musique (sfx.gd)
 var players: Dictionary = {}           # peer_id -> membre d'équipage contrôlé par ce téléphone
 var people: Dictionary = {}            # peer_id -> {name, color, slot, token, medals, choosing}
+var quips                            # répliques humoristiques (quips.gd)
 var crew: Array = []                   # tous les membres d'équipage présents (contrôlés ou libres)
 var profiles_by_token: Dictionary = {} # token -> emplacement de couleur
 var _next_crew_id := 1
@@ -67,6 +69,7 @@ func _ready() -> void:
 		stars.append([Vector2(rng.randf() * 1280, rng.randf() * 720), rng.randf_range(0.6, 1.8), rng.randf()])
 	sfx = SfxScript.new()
 	add_child(sfx)
+	quips = QuipsScript.new(self)
 	net = NetServer.new()
 	add_child(net)
 	net.player_joined.connect(_on_joined)
@@ -408,6 +411,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 		match str(msg.get("cmd", "")):
 			"shot": _shot(str(msg.get("path", "user://shot.png")))
 			"goto": goto(str(msg.get("scene", "academie")), msg.get("args", {}))
+			"quip": quips.react(str(msg.get("situation", "victoire")), null, true)
 			"rep": if run: run.renown = clampi(int(msg.get("value", 0)), -10, 10)
 			_: scene.debug_command(p, msg)
 	var info := {"t": "dbg", "scene": scene_name, "x": p.position.x, "y": p.position.y, "seated": p.seated,
@@ -415,6 +419,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 		"crew": crew.map(func(c): return {"id": c.crew_id, "name": c.player_name, "species": c.species, "peer": c.peer_id,
 			"x": c.position.x, "y": c.position.y, "avatar": c.owner_token != ""})}
 	if run:
+		info["quips"] = crew.filter(func(q): return q.bubble_t > 0.0).map(func(q): return q.bubble)
 		info["run"] = {"ship": run.ship_id, "hull": run.hull, "hull_max": run.hull_max, "fuel": run.fuel, "scrap": run.scrap,
 			"colons": run.colons, "renown": run.renown, "node": run.current, "difficulty": run.difficulty, "layers": run.layers, "layer": run.depth(), "type": run.node(run.current)["type"],
 			"weapons": run.weapons, "shields": run.shields, "engines": run.engines, "victory": run.victory, "ended": run.ended}
@@ -426,6 +431,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	t += delta
+	quips.tick(delta)
 	_maybe_screenshot()
 	var now := Time.get_ticks_msec()
 	for p: Player in crew:

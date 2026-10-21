@@ -31,6 +31,8 @@ var medals := 0
 var downed := false              # à terre (abordage) : ne peut plus agir tant qu'on ne l'a pas relevé
 var revive_frac := 0.0           # progression de la relève, de 0 à 1
 var blink := 0.0                 # invulnérabilité : le personnage clignote
+var bubble := ""                 # réplique en cours (bulle au-dessus du personnage)
+var bubble_t := 0.0
 
 
 func is_free() -> bool:
@@ -48,6 +50,7 @@ func reset_state() -> void:
 	downed = false
 	revive_frac = 0.0
 	blink = 0.0
+	bubble_t = 0.0
 	axis = Vector2.ZERO
 
 
@@ -70,7 +73,13 @@ func held(i: int) -> bool:
 	return buttons[i]
 
 
-func _process(_delta: float) -> void:
+func say(text: String, seconds: float) -> void:
+	bubble = text
+	bubble_t = seconds
+
+
+func _process(delta: float) -> void:
+	bubble_t = maxf(0.0, bubble_t - delta)
 	if axis.length() > 0.15:
 		facing = axis.normalized()
 	modulate.a = 0.4 if blink > 0.0 and int(Time.get_ticks_msec() / 70) % 2 == 0 else 1.0
@@ -82,6 +91,7 @@ func _draw() -> void:
 	var free := is_free()
 	if downed:
 		_draw_downed(r)
+		_draw_bubble(r)
 		return
 	# ombre, et anneau à la couleur du joueur qui le contrôle
 	draw_set_transform(Vector2(0, r * 0.9), 0, Vector2(1, 0.35))
@@ -119,6 +129,41 @@ func _draw() -> void:
 		draw_string(font, Vector2(-80, r + 39), controller_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 12, controller_color)
 	elif info != "":
 		draw_string(font, Vector2(-80, r + 39), info, HORIZONTAL_ALIGNMENT_CENTER, 160, 11, Color(IVORY, 0.5))
+	_draw_bubble(r)
+
+
+## Bulle de réplique : texte coupé en lignes, fond sombre, filet doré.
+func _draw_bubble(r: float) -> void:
+	if bubble_t <= 0.0 or bubble == "":
+		return
+	var font := ThemeDB.fallback_font
+	var fs := 15
+	var maxw := 230.0
+	var lines: Array = []
+	var cur := ""
+	for w in bubble.split(" "):
+		var test: String = w if cur == "" else cur + " " + w
+		if cur != "" and font.get_string_size(test, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > maxw:
+			lines.append(cur)
+			cur = w
+		else:
+			cur = test
+	lines.append(cur)
+	var width := 0.0
+	for l in lines:
+		width = maxf(width, font.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	var h := lines.size() * 19.0 + 12.0
+	var a := clampf(bubble_t / 0.4, 0.0, 1.0)
+	var box := Rect2(-width / 2 - 10, -r - 22 - h, width + 20, h)
+	var gx := get_global_transform().origin.x  # reste entièrement visible à l'écran
+	box.position.x += clampf(gx + box.position.x, 8.0, 1272.0 - box.size.x) - (gx + box.position.x)
+	var tail := clampf(0.0, box.position.x + 12.0, box.end.x - 12.0)
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	draw_rect(box, Color(0.07, 0.05, 0.1, 0.92 * a))
+	draw_rect(box, Color(GOLD, a), false, 1.5)
+	draw_colored_polygon(PackedVector2Array([Vector2(tail - 7, box.end.y), Vector2(tail + 7, box.end.y), Vector2(tail, box.end.y + 9)]), Color(0.07, 0.05, 0.1, 0.92 * a))
+	for i in lines.size():
+		draw_string(font, Vector2(box.position.x + 10, box.position.y + 20 + i * 19.0), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(IVORY, a))
 
 
 ## À terre : grisé, avec une croix et l'arc de relève.

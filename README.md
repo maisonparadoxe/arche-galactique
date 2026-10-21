@@ -105,6 +105,10 @@ L'équipage a une **réputation** de -10 (« Fléau des mers ») à +10 (« Cors
 
 Le nœud « Navire marchand » ouvre un dilemme (`convoi_*` dans `data/events.json`) : piller, escorter, négocier… Les effets `rep` et `abordage` s'y ajoutent aux effets habituels. Commande de debug : `rep`.
 
+### Répliques de l'équipage
+
+De temps en temps, un membre d'équipage lâche une réplique drôle dans une bulle au-dessus de sa tête (écran TV). Elles sont rares : probabilité par situation, 22 s minimum entre deux répliques, 80 s entre deux de la même situation. Situations : série d'ennemis, chute, relève, coffre, porte, victoire, repli, boutique, combat, coque touchée, événement. Les références littéraires sont des clins d'œil, jamais des citations. Banque de répliques : `quips.gd`. Commande de debug : `quip`.
+
 ### Événements, haltes, boutique
 
 - Les **événements** et **haltes** sont dans `data/events.json` : texte, choix, conséquences aléatoires pondérées (ferraille, carburant, coque, colons, améliorations, combat). On peut en ajouter sans toucher au code.

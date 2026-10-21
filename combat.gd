@@ -44,6 +44,7 @@ var _last_armes_push := 0.0
 
 func enter(args: Dictionary) -> void:
 	var run: RunState = game.run
+	game.quips.react("combat")
 	ship_def = ShipData.PLAYER_SHIPS[run.ship_id]
 	layout = ShipLayout.build(ship_def["layout"], PLAYER_AREA, 64.0)
 	sys = {
@@ -396,6 +397,7 @@ func _enemy_shot_hits(s: Dictionary) -> void:
 		return
 	var room := layout.room(s["room"])
 	run.hull = maxi(0, run.hull - int(s["dmg"]))
+	game.quips.react("coque")
 	shake = 0.35
 	var sname: String = room["system"]
 	if sys.has(sname):

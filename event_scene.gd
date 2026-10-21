@@ -27,6 +27,7 @@ static func all_events() -> Array:
 
 
 func enter(args: Dictionary) -> void:
+	game.quips.react("evenement")
 	var run: RunState = game.run
 	var kind: String = args.get("kind", "evenement")
 	var forced: String = args.get("id", "")
