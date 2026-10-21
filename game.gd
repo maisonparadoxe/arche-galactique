@@ -24,6 +24,7 @@ const MAX_PLAYERS := 8
 const INPUT_STALE_MS := 500
 
 const SfxScript := preload("res://sfx.gd")
+const ColonyScript := preload("res://colony.gd")
 const QuipsScript := preload("res://quips.gd")
 
 const SCENES := {
@@ -41,6 +42,8 @@ var net: NetServer
 var sfx                               # sons et musique (sfx.gd)
 var players: Dictionary = {}           # peer_id -> membre d'équipage contrôlé par ce téléphone
 var people: Dictionary = {}            # peer_id -> {name, color, slot, token, medals, choosing}
+var last_colony: Dictionary = {}    # bilan de colonie de la dernière expédition
+var colony                           # la colonie de l'arche (colony.gd), conservée d'une expédition à l'autre
 var quips                            # répliques humoristiques (quips.gd)
 var crew: Array = []                   # tous les membres d'équipage présents (contrôlés ou libres)
 var profiles_by_token: Dictionary = {} # token -> emplacement de couleur
@@ -70,6 +73,9 @@ func _ready() -> void:
 	sfx = SfxScript.new()
 	add_child(sfx)
 	quips = QuipsScript.new(self)
+	colony = ColonyScript.new()
+	colony.persist = not test_mode
+	colony.load_from_disk()
 	net = NetServer.new()
 	add_child(net)
 	net.player_joined.connect(_on_joined)
@@ -127,6 +133,7 @@ func _refresh_players() -> void:
 ## Démarre une expédition avec le vaisseau choisi.
 func start_run(ship_id: String, difficulty := "normal") -> void:
 	run = RunState.create(ship_id, difficulty)
+	colony.apply_to(run)
 	rebuild_crew(maxi(int(ShipData.PLAYER_SHIPS[ship_id].get("crew", 4)), people.size()))
 	goto("carte")
 
@@ -135,6 +142,7 @@ func start_run(ship_id: String, difficulty := "normal") -> void:
 func end_run(victory: bool) -> void:
 	run.victory = victory
 	run.ended = true
+	last_colony = colony.register(run)
 	goto("bilan")
 
 
@@ -413,6 +421,8 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 			"shot": _shot(str(msg.get("path", "user://shot.png")))
 			"goto": goto(str(msg.get("scene", "academie")), msg.get("args", {}))
 			"quip": quips.react(str(msg.get("situation", "victoire")), null, true)
+			"end_run": if run: end_run(bool(msg.get("win", true)))
+			"colony": colony.pop = int(msg.get("value", 0))
 			"madness": if run: run.madness = clampi(int(msg.get("value", 0)), 0, 3)
 			"rep": if run: run.renown = clampi(int(msg.get("value", 0)), -10, 10)
 			_: scene.debug_command(p, msg)
@@ -421,6 +431,7 @@ func _on_debug(id: int, msg: Dictionary) -> void:
 		"crew": crew.map(func(c): return {"id": c.crew_id, "name": c.player_name, "species": c.species, "peer": c.peer_id,
 			"x": c.position.x, "y": c.position.y, "avatar": c.owner_token != ""})}
 	if run:
+		info["colony"] = {"pop": colony.pop, "expeditions": colony.expeditions, "buildings": colony.unlocked().map(func(b): return b["id"])}
 		info["quips"] = crew.filter(func(q): return q.bubble_t > 0.0).map(func(q): return q.bubble)
 		info["run"] = {"ship": run.ship_id, "hull": run.hull, "hull_max": run.hull_max, "fuel": run.fuel, "scrap": run.scrap,
 			"colons": run.colons, "renown": run.renown, "clones_total": run.clone_total(), "node": run.current, "difficulty": run.difficulty, "layers": run.layers, "layer": run.depth(), "type": run.node(run.current)["type"],

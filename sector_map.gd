@@ -103,7 +103,7 @@ func _draw() -> void:
 	var run: RunState = game.run
 	Hud.draw(self, run)
 	Art.title(self, Vector2(40, 110), "Secteur de la Nébuleuse d'Argent", 30)
-	Art.text(self, Vector2(44, 136), "L'arche Éléa suit votre sillage. Choisissez la route.", 16, Color(Art.IVORY, 0.6))
+	Art.text(self, Vector2(44, 136), game.ColonyScript.narrative_line(run), 16, Color(Art.IVORY, 0.6))
 	game.draw_small_qr(self, Vector2(1190, 22), 64)
 	_draw_corruption(run)
 	# Liens

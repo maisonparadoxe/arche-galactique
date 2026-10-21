@@ -195,6 +195,7 @@ d = await waitScene(a, "academie", 6000);
 check(a.last("layout").mode === "base", "retour à l'Académie, manette de base");
 
 // ---- Deuxième expédition : défaite
+await a.cmd({ cmd: "colony", value: 0 });  // la colonie survit entre expéditions : on la remet à zéro pour comparer
 await a.tp(500, 618);
 await hold(a, [true, false, false, false], 120);
 await waitScene(a, "choix");

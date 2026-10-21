@@ -97,6 +97,20 @@ Tout l'équipage descend du vaisseau et nettoie un niveau à pied, vu de dessus,
 - **Butin.** Coffres dans les salles (traversés = ouverts), gros coffre au fond, bonus du capitaine. Enchaîner des kills (×2, ×3…) fait grimper le score ; un enchaînement de 5 et un équipage sans chute donnent chacun +3 ferraille.
 - **Équilibrage.** Le nombre d'ennemis suit la taille de l'équipage et la difficulté ; leurs préavis s'allongent en Découverte. Niveaux, ennemis et coffres sont dans `ShipData.BOARDINGS` et `BOARDING_FOES` : ajouter une île ou un galion, c'est ajouter des salles à cet endroit.
 
+### La colonie (progression entre les expéditions)
+
+Les colons sauvés peuplent l'arche Éléa, et l'arche se souvient d'une partie à l'autre (fichier `colony.json` dans le dossier de données du jeu ; rien n'est écrit en mode test). Victoire : tous les colons sauvés. Défaite : quelques rescapés selon le chemin parcouru. Des bâtiments se construisent seuls :
+
+| Population | Bâtiment | Bonus de départ |
+| --- | --- | --- |
+| 8 000 | Forge | +6 ferraille |
+| 20 000 | Citerne | +1 carburant |
+| 40 000 | Chantier naval | +4 coque |
+| 70 000 | Conseil des anciens | réputation +2 |
+| 110 000 | Grande cryo | clones moins fatigués (-4 % au lieu de -7 %) |
+
+L'Académie affiche la population et les bâtiments ; le bilan la population gagnée et les nouveaux bâtiments. La carte affiche une ligne de **journal de bord** qui dépend de l'avancée, de la réputation et de la folie. Une chronique des dernières expéditions est conservée dans la sauvegarde. Commandes de debug : `colony`, `end_run`.
+
 ### Folie, études et compétences
 
 - **Folie** (de 0 « Lucides » à 3 « Visionnaires », affichée dans le bandeau) : l'Indicible regarde l'équipage. Elle monte en vainquant une épave corrompue, en affrontant l'Indicible, ou par certains événements (la nébuleuse qui chante). Chaque niveau accélère les coups de -6 %, et les équipiers lâchent des répliques inquiétantes. Au niveau 3, chacun a de brèves « absences » (0,8 s). On l'apaise au jardin suspendu ou avec la **Tisane apaisante** (8 ferrailles).

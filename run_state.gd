@@ -29,6 +29,7 @@ var victory := false
 var ended := false
 var madness := 0                # folie collective de l'équipage, de 0 à 3 (l'Indicible les regarde)
 var skills: Dictionary = {}       # crew_id -> {compétence: niveau} (gagnées en jouant son rôle)
+var clone_malus := 0.07          # perte de vitesse par clonage (réduite par la Grande cryo)
 var clones: Dictionary = {}       # crew_id -> nombre de clonages subis (malus de vitesse)
 var renown := 0                # réputation, de -10 (fléau des mers) à +10 (corsaire exemplaire)
 
@@ -72,7 +73,7 @@ func add_scrap(n: int) -> void:
 
 ## Malus d'un clone fatigué : -7 % de vitesse par génération, jusqu'à -35 %.
 func clone_speed(crew_id: int) -> float:
-	return 1.0 - 0.07 * mini(int(clones.get(crew_id, 0)), 5)
+	return 1.0 - clone_malus * mini(int(clones.get(crew_id, 0)), 5)
 
 
 const SKILLS := {"bretteur": "Bretteur", "tireur": "Tireur", "infirmier": "Infirmier", "roublard": "Roublard"}

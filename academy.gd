@@ -383,6 +383,11 @@ func _draw() -> void:
 func _draw_header() -> void:
 	Art.title(self, Vector2(44, 62), "Académie galactique", 44)
 	Art.title(self, Vector2(48, 92), "L'Arche galactique · salle d'entraînement", 20, Color(IVORY, 0.7))
+	var built: Array = game.colony.unlocked().map(func(b): return b["name"])
+	var line := "Colonie : %s âmes" % Art.num(game.colony.pop)
+	if not built.is_empty():
+		line += " · " + ", ".join(built)
+	Art.text(self, Vector2(48, 118), line, 14, Color(SAGE, 0.85))
 	Art.text(self, Vector2(48, 134), "Scanne le code ou ouvre  %s  sur ton téléphone (même Wi-Fi)" % game.join_url, 16, Color(IVORY, 0.55))
 	draw_line(Vector2(48, 104), Vector2(400, 104), Color(GOLD, 0.7), 1.5)
 	draw_colored_polygon(PackedVector2Array([Vector2(224, 98), Vector2(230, 104), Vector2(224, 110), Vector2(218, 104)]), GOLD)

@@ -40,7 +40,7 @@ func _draw() -> void:
 	Art.title(self, card.position + Vector2(0, 80), vote_title, 50, col, HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
 	Art.rule(self, Vector2(card.get_center().x - 180, card.position.y + 104), 360, col)
 	Art.paragraph(self, Vector2(card.position.x + 70, card.position.y + 150), _summary(run), card.size.x - 140, 20, Art.IVORY)
-	var y := card.position.y + 260
+	var y := card.position.y + 236
 	var rows := [
 		["Vaisseau", "%s · %s" % [run.ship_name, run.diff.get("name", "")]],
 		["Sauts effectués", str(run.stats["jumps"])],
@@ -50,9 +50,13 @@ func _draw() -> void:
 		["Coque restante", "%d / %d" % [run.hull, run.hull_max]],
 		["Réputation", "%s (%+d)" % [RunState.renown_title(run.renown), run.renown]],
 		["Colons sauvés", Art.num(saved(run))],
+		["Colonie", "%s âmes (+%s)" % [Art.num(game.colony.pop), Art.num(int(game.last_colony.get("gain", 0)))]],
 	]
+	var fresh: Array = game.last_colony.get("new", [])
+	if not fresh.is_empty():
+		rows.append(["Bâtiment construit", ", ".join(fresh)])
 	for r in rows:
 		Art.text(self, Vector2(card.position.x + 180, y), r[0], 18, Color(Art.IVORY, 0.6))
 		Art.title(self, Vector2(card.position.x + 470, y), r[1], 22, Art.IVORY)
-		y += 36
+		y += 30
 	draw_vote_footer(674)
