@@ -65,6 +65,7 @@ Règle de base : **tout fonctionne en automatique, un joueur fait toujours mieux
 | Action | Comment |
 | --- | --- |
 | Viser et tirer | **A** devant le poste d'armes : la manette devient le poste d'armes. Le joystick déplace le viseur sur le vaisseau ennemi, un bouton par arme tire quand elle est chargée. Sans artilleur, les armes tirent seules, plus lentement et au hasard. |
+| Charger les canons | Chaque tir consomme un **boulet** (deux pour la torpille). La soute en renvoie un toute seule toutes les 7 s (6 au maximum, 4 au départ) ; un membre contrôlé qui passe par la **soute** prend un boulet et le livre en approchant du **poste d'armes** : +2 d'un coup, bien plus vite. Sans boulets, les canons chargés attendent. |
 | Piloter | **A** devant la console du Pont : bouton « Virer ! » = 2,5 s d'esquive +32 % (délai 9 s). Un pilote à la barre ajoute aussi +8 % d'esquive en permanence. |
 | Machines | **A** devant la console de la coursive : on envoie l'énergie aux armes (charge ×1,5), aux boucliers (recharge ×2) ou aux moteurs (+8 % d'esquive). Le bouton « Cloisons » empêche le feu de se propager. Sans ingénieur : rien de tout ça. |
 | Éteindre un feu | Maintenir **B** près des flammes (Salamandrin ×2). Un feu abîme le système de la salle, la coque, et peut se propager. Un membre libre éteint seul les feux de sa salle. |

@@ -39,6 +39,12 @@ var reward_text := ""
 var weapons_console := Vector2.ZERO
 var pilot_console := Vector2.ZERO
 var engineer_console := Vector2.ZERO
+var shells := 4                       # boulets en soute (partagés par les canons)
+var shell_t := 0.0                    # minuterie du ravitaillement automatique
+var magazine_console := Vector2.ZERO  # la soute : on y prend un boulet
+const SHELLS_MAX := 6
+const SHELL_AUTO_EVERY := 7.0         # sans porteur, la soute envoie un boulet toute seule, lentement
+const SHELLS_PER_TRIP := 2            # un porteur en livre deux d'un coup
 var pilot := 0                        # téléphone assis au pilotage
 var engineer := 0                     # téléphone assis aux machines
 var power := "armes"                  # où l'ingénieur envoie l'énergie : armes, boucliers ou moteurs
@@ -74,6 +80,10 @@ func enter(args: Dictionary) -> void:
 	var pr := layout.room_with_system("pilotage")
 	if not pr.is_empty():
 		pilot_console = (pr["rect"] as Rect2).get_center() + Vector2(0, 26)
+	var sr := layout.room("soute")
+	if sr.is_empty():
+		sr = layout.rooms[0]
+	magazine_console = (sr["rect"] as Rect2).get_center()
 	var cr2 := layout.room("coursive")
 	if cr2.is_empty():
 		cr2 = layout.rooms[0]
@@ -212,8 +222,12 @@ func _weapons_state() -> Array:
 	for i in weapons.size():
 		var w: Dictionary = weapons[i]
 		var def: Dictionary = ShipData.WEAPONS[w["id"]]
-		out.append({"name": def["name"], "charge": snappedf(w["charge"] / def["charge"], 0.01),
-			"ready": w["charge"] >= def["charge"], "powered": i < eff("armes")})
+		var charged: bool = w["charge"] >= def["charge"]
+		var item := {"name": def["name"], "charge": snappedf(w["charge"] / def["charge"], 0.01),
+			"ready": charged and shells >= _shell_cost(i), "powered": i < eff("armes")}
+		if charged and shells < _shell_cost(i) and i < eff("armes"):
+			item["label"] = "%s (plus de boulets)" % def["name"]
+		out.append(item)
 	return out
 
 
@@ -231,6 +245,7 @@ func update(delta: float) -> void:
 		_update_crew_work(delta)
 		_update_fires(delta)
 		_update_shields(delta)
+		_update_shells(delta)
 		_update_player_weapons(delta)
 		_update_enemy(delta)
 		if game.run.hull <= 0:
@@ -341,6 +356,9 @@ func _try_fire(i: int, p: Player) -> void:
 	if i >= eff("armes") or w["charge"] < def["charge"]:
 		game.net.send(p.peer_id, {"t": "toast", "text": "Pas encore chargée"})
 		return
+	if shells < _shell_cost(i):
+		game.net.send(p.peer_id, {"t": "toast", "text": "Plus de boulets ! Un équipier doit en apporter de la soute"})
+		return
 	var target := cross
 	var room := enemy_layout.room_at(cross)
 	if room.is_empty() and p.species == "automate":
@@ -357,14 +375,38 @@ func _try_fire(i: int, p: Player) -> void:
 	game.net.send(p.peer_id, {"t": "buzz"})
 
 
+func _shell_cost(i: int) -> int:
+	return 2 if ShipData.WEAPONS[weapons[i]["id"]].get("pierce", false) else 1
+
+
 func _launch_player_shot(i: int, target: Vector2, room: Dictionary) -> void:
 	var w: Dictionary = weapons[i]
 	var def: Dictionary = ShipData.WEAPONS[w["id"]]
+	shells = maxi(0, shells - _shell_cost(i))
 	w["charge"] = 0.0
 	w["ready_for"] = 0.0
 	game.sfx.play("tir", 0.55, -3.0)
 	shots.append({"owner": "player", "from": weapons_console + Vector2(16, -10 + i * 10), "to": target, "t0": t,
 		"dur": 0.7, "dmg": def["dmg"], "pierce": def.get("pierce", false), "room": room.get("id", ""), "weapon": w["id"]})
+
+
+## Ravitaillement : la soute envoie un boulet de temps en temps ; un porteur en livre deux, bien plus vite.
+func _update_shells(delta: float) -> void:
+	shell_t += delta
+	if shell_t >= SHELL_AUTO_EVERY:
+		shell_t = 0.0
+		shells = mini(SHELLS_MAX, shells + 1)
+	for p: Player in game.crew:
+		if p.seated or p.downed or p.is_free():
+			continue
+		if not p.carrying and p.position.distance_to(magazine_console) < NEAR and shells < SHELLS_MAX:
+			p.carrying = true
+			game.net.send(p.peer_id, {"t": "buzz"})
+		elif p.carrying and p.position.distance_to(weapons_console) < NEAR + 20:
+			p.carrying = false
+			shells = mini(SHELLS_MAX, shells + SHELLS_PER_TRIP)
+			_float(weapons_console + Vector2(0, -34), "+%d boulets" % SHELLS_PER_TRIP, Art.GOLD)
+			game.net.send(p.peer_id, {"t": "buzz"})
 
 
 func _update_player_weapons(delta: float) -> void:
@@ -379,7 +421,7 @@ func _update_player_weapons(delta: float) -> void:
 		if w["charge"] >= def["charge"]:
 			w["ready_for"] += delta
 		# Sans artilleur : tir automatique, plus lent, sur une salle au hasard
-		if gunner == 0 and w["charge"] >= def["charge"] and w["ready_for"] >= def["charge"] * AUTO_DELAY:
+		if gunner == 0 and w["charge"] >= def["charge"] and w["ready_for"] >= def["charge"] * AUTO_DELAY and shells >= _shell_cost(i):
 			var room: Dictionary = enemy_layout.rooms.pick_random()
 			_launch_player_shot(i, enemy_layout.random_point(room, 12), room)
 
@@ -629,7 +671,7 @@ func debug_info(_p: Player) -> Dictionary:
 		dmg[s] = sys[s]["damage"]
 	return {"time": snappedf(t, 0.1), "state": state, "enemy": enemy["id"], "enemy_hull": enemy["hull"], "enemy_shields": enemy["shields"],
 		"shields": shield_layers, "sys_damage": dmg, "fires": fires.map(func(f): return [f["pos"].x, f["pos"].y, f["room"]]),
-		"gunner": gunner, "pilot": pilot, "engineer": engineer, "power": power, "sealed": sealed, "evasion": snappedf(player_evasion(), 0.001),
+		"gunner": gunner, "shells": shells, "magazine_x": magazine_console.x, "magazine_y": magazine_console.y, "pilot": pilot, "engineer": engineer, "power": power, "sealed": sealed, "evasion": snappedf(player_evasion(), 0.001),
 		"maneuver": maneuver_t, "pilot_x": pilot_console.x, "pilot_y": pilot_console.y, "eng_x": engineer_console.x, "eng_y": engineer_console.y, "cross_x": cross.x, "cross_y": cross.y, "weapons": _weapons_state(),
 		"console_x": weapons_console.x, "console_y": weapons_console.y,
 		"enemy_rooms": enemy_layout.rooms.map(func(r): return {"id": r["id"], "x": (r["rect"] as Rect2).get_center().x, "y": (r["rect"] as Rect2).get_center().y}),
@@ -719,6 +761,12 @@ func _draw_player_ship() -> void:
 	draw_rect(cr, Art.GOLD if gunner == 0 else Art.GOLD_DIM, false, 2.0)
 	if gunner == 0 and state == "fight":
 		Art.text(self, weapons_console + Vector2(-70, -28), "A : poste d'armes", 11, Color(Art.GOLD, 0.7 + 0.3 * sin(t * 3.0)), HORIZONTAL_ALIGNMENT_CENTER, 120)
+	var mr := Rect2(magazine_console - Vector2(16, 12), Vector2(32, 24))
+	draw_rect(mr, Color("#2a1f14"))
+	draw_rect(mr, Art.GOLD_DIM, false, 2.0)
+	for k in mini(shells, 3):
+		draw_circle(magazine_console + Vector2(-8 + k * 8, 0), 3.5, Art.IVORY)
+	Art.text(self, magazine_console + Vector2(-50, -18), "Boulets : %d" % shells, 11, Color(Art.GOLD, 0.8), HORIZONTAL_ALIGNMENT_CENTER, 100)
 	for c in [[pilot_console, pilot, "A : pilotage"], [engineer_console, engineer, "A : machines"]]:
 		var rc := Rect2(c[0] - Vector2(12, 12), Vector2(24, 24))
 		draw_rect(rc, Color("#1a1620"))
@@ -837,6 +885,7 @@ func _draw_weapon_panel() -> void:
 	if gunner != 0 and game.players.has(gunner):
 		who = game.players[gunner].player_name
 	Art.title(self, r.position + Vector2(0, 18), "Armes · %s" % who, 17, Art.GOLD)
+	Art.text(self, r.position + Vector2(0, 40), "Boulets " + "●".repeat(shells) + "○".repeat(SHELLS_MAX - shells), 13, Color(Art.GOLD, 0.9))
 	var x := r.position.x + 210
 	var ws := _weapons_state()
 	for w in ws:
@@ -848,4 +897,4 @@ func _draw_weapon_panel() -> void:
 	Art.icon(self, "bouclier", Vector2(x + 20, r.position.y + 12))
 	Art.text(self, Vector2(x + 36, r.position.y + 18), "%d/%d" % [shield_layers, eff("boucliers")], 15)
 	Art.text(self, Vector2(x, r.position.y + 40), "Esquive %d %%" % int(round(player_evasion() * 100)), 13, Color(Art.IVORY, 0.6))
-	Art.text(self, Vector2(870, 668), "B : éteindre / réparer · A aux postes : armes, pilotage, machines", 14, Color(Art.IVORY, 0.55), HORIZONTAL_ALIGNMENT_CENTER, 380)
+	Art.paragraph(self, Vector2(880, 660), "B : éteindre / réparer · A : postes\nBoulets : de la soute aux armes", 380, 14, Color(Art.IVORY, 0.55))
