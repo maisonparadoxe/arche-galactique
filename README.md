@@ -109,7 +109,7 @@ Les colons sauvés peuplent l'arche Éléa, et l'arche se souvient d'une partie 
 | 70 000 | Conseil des anciens | réputation +2 |
 | 110 000 | Grande cryo | clones moins fatigués (-4 % au lieu de -7 %) |
 
-L'Académie affiche la population et les bâtiments ; le bilan la population gagnée et les nouveaux bâtiments. La carte affiche une ligne de **journal de bord** qui dépend de l'avancée, de la réputation et de la folie. Une chronique des dernières expéditions est conservée dans la sauvegarde. Commandes de debug : `colony`, `end_run`.
+L'Académie affiche la population et les bâtiments ; le bilan la population gagnée et les nouveaux bâtiments. La carte affiche une ligne de **journal de bord** qui dépend de l'avancée, de la réputation et de la folie. La **chronique de l'arche** (une ligne par expédition : issue, réputation, folie, clonages, âmes gagnées) est conservée dans la sauvegarde et affichée au bilan (les deux dernières). Commandes de debug : `colony`, `end_run`.
 
 ### Folie, études et compétences
 

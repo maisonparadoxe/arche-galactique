@@ -34,7 +34,7 @@ func _draw() -> void:
 	var run: RunState = game.run
 	if run == null:
 		return
-	var card := Rect2(240, 80, 800, 560)
+	var card := Rect2(240, 56, 800, 604)
 	var col := Art.GOLD if run.victory else Art.CORRUPT
 	Art.panel(self, card, 1.1, col)
 	Art.title(self, card.position + Vector2(0, 80), vote_title, 50, col, HORIZONTAL_ALIGNMENT_CENTER, card.size.x)
@@ -58,5 +58,14 @@ func _draw() -> void:
 	for r in rows:
 		Art.text(self, Vector2(card.position.x + 180, y), r[0], 18, Color(Art.IVORY, 0.6))
 		Art.title(self, Vector2(card.position.x + 470, y), r[1], 22, Art.IVORY)
-		y += 30
+		y += 26
+	# Chronique : les dernières expéditions de l'arche
+	var chron: Array = game.colony.chronicle
+	if not chron.is_empty():
+		var cy := y + 22
+		Art.rule(self, Vector2(card.get_center().x - 120, cy - 18), 240, Color(col, 0.6))
+		Art.title(self, Vector2(card.position.x + 70, cy + 4), "Chronique de l'arche", 18, Color(col, 0.9))
+		cy += 28
+		for e in chron.slice(maxi(0, chron.size() - 2)).filter(func(_x): return true):
+			cy += Art.paragraph(self, Vector2(card.position.x + 70, cy), "· " + str(e), card.size.x - 140, 12, Color(Art.IVORY, 0.75)) + 4
 	draw_vote_footer(674)
